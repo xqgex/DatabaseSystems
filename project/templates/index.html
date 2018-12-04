@@ -1,14 +1,130 @@
 <!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
 <html>
 <head>
 	{% block title %}<title>Home Page</title>{% endblock %}
 	<meta charset="utf-8">
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	{% load static %}
+	<link rel="icon" href="{% static 'imgs/favicon.ico' %}" type="image/x-icon" />
 	<link rel="stylesheet" href="{% static 'css/styles.css' %}">
+	<link rel="stylesheet" href="{% static 'css/jquery.fullPage.css' %}">
+	<script type="text/javascript" src="{% static 'js/jquery.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'js/jquery-ui.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'js/jquery.fullPage.js' %}"></script>
+	<script type="text/javascript">
+		$(document).ready(function() {
+			$("#noscript").attr("style","display: none;"),
+			$('#fullpage').fullpage({
+				'verticalCentered': false,
+				'css3': true,
+				'sectionsColor': ['#F0F2F4', '#fff', '#fff', '#fff'],
+				'navigation': true,
+				'navigationPosition': 'right',
+				'navigationTooltips': ['Page number 1', 'Page number 2', 'Page number 3', 'Page number 4'],
+				'css3': true,
+				'responsiveWidth': 900,
+				'afterLoad': function(anchorLink, index){
+					if(index == 2){
+						$('#iphone3, #iphone2, #iphone4').addClass('active');
+					}
+				},
+				'onLeave': function(index, nextIndex, direction){
+					if (index == 3 && direction == 'down'){
+						$('.section').eq(index -1).removeClass('moveDown').addClass('moveUp');
+					}
+					else if(index == 3 && direction == 'up'){
+						$('.section').eq(index -1).removeClass('moveUp').addClass('moveDown');
+					}
+
+					$('#staticImg').toggleClass('active', (index == 2 && direction == 'down' ) || (index == 4 && direction == 'up'));
+					$('#staticImg').toggleClass('moveDown', nextIndex == 4);
+					$('#staticImg').toggleClass('moveUp', index == 4 && direction == 'up');
+				},
+				'afterResponsive': function(isResponsive){
+					
+				}
+			});
+			$('#moveToPage1').click(function(e){
+				e.preventDefault();
+				$.fn.fullpage.moveTo(1);
+			});
+			$('#moveToPage2').click(function(e){
+				e.preventDefault();
+				$.fn.fullpage.moveTo(2);
+			});
+			$('#moveToPage3').click(function(e){
+				e.preventDefault();
+				$.fn.fullpage.moveTo(3);
+			});
+			$('#moveToPage4').click(function(e){
+				e.preventDefault();
+				$.fn.fullpage.moveTo(4);
+			});
+		});
+	</script>
 </head>
 <body>
-Hello world
-<a href="{% url 'home' %}">Home</a>
+<div id="noscript">
+<div><strong>Warning: </strong>For full functionality of this site it is necessary to enable JavaScript.<br>Here are the <a href="http://www.enable-javascript.com/" target="_blank"> instructions how to enable JavaScript in your web browser</a>.</div>
+</div>
+<div id="header">FoodFinder
+	<a id="moveToPage1" href="#"><button class="btn">Page number 1</button></a>
+	<a id="moveToPage2" href="#"><button class="btn">Page number 2</button></a>
+	<a id="moveToPage3" href="#"><button class="btn">Page number 3</button></a>
+	<a id="moveToPage4" href="#"><button class="btn">Page number 4</button></a>
+</div>
+<div id="footer">The site was build as a the final project at Tel Aviv university Database Systems (Fall 2018/19) course (0368-3458).</div>
+<div id="fullpage">
+	<div id="staticImg">
+		<div class="imgsContainer">
+			<img src="{% static 'imgs/iphone-green.png' %}" alt="iphone" id="iphone-green" />
+		</div>
+	</div>
+	<div class="section fp-auto-height-responsive" id="section0">
+		<h1>FoodFinder</h1>
+		A new and innovative way to find the best restaurant that <strong>fits</strong> you.
+		<img src="{% static 'imgs/Table-Plates-2.jpg' %}" alt="Table Plates" />
+	</div>
+	<div class="section" id="section1">
+		<div class="wrap">
+			<div class="imgsContainer">
+				<img src="{% static 'imgs/iphone2.png' %}" alt="iphone" id="iphone2" />
+				<img src="{% static 'imgs/iphone3.png' %}" alt="iphone" id="iphone3" />
+				<img src="{% static 'imgs/iphone4.png' %}" alt="iphone" id="iphone4" />
+			</div>
+			<div class="box fp-auto-height-responsive">
+				<h2>Lorem ipsum dolor sit amet.</h2>
+				 <strong>Lorem ipsum</strong> dolor sit amet, consectetur adipiscing elit. Suspendisse iaculis, dolor non imperdiet vulputate, lorem dui posuere ipsum, nec tincidunt nunc tellus ultrices orci. Donec vel luctus ipsum. Proin a venenatis leo, eget blandit.
+			</div>
+		</div>
+	</div>
+
+	<div class="section moveDown" id="section2">
+		<div class="wrap">
+			<div class="imgsContainer">
+				<img src="{% static 'imgs/iphone-yellow.png' %}" alt="iphone" id="iphone-yellow" />
+				<img src="{% static 'imgs/iphone-red.png' %}" alt="iphone" id="iphone-red" />
+				<img src="{% static 'imgs/iphone-blue.png' %}" alt="iphone" id="iphone-blue" />
+			</div>
+			<div class="box fp-auto-height-responsive">
+				<h2>Lorem ipsum dolor sit amet.</h2>
+				<strong>Lorem ipsum</strong> dolor sit amet, consectetur adipiscing elit. Quisque eget dolor et leo porttitor consectetur id sit.
+			</div>
+		</div>
+	</div>
+	<div class="section moveDown" id="section3">
+		<div class="wrap">
+			<div class="box fp-auto-height-responsive">
+				<h2>Lorem ipsum dolor sit amet.</h2>
+				Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed accumsan sapien commodo nulla faucibus, sit amet semper quam accumsan. Vivamus consectetur odio mauris, quis laoreet massa rhoncus eu. Fusce scelerisque accumsan ex, sit amet volutpat urna interdum et. Phasellus in ipsum magna. Quisque ac tincidunt.
+			</div>
+		</div>
+		<div class="imgsContainer">
+			<img src="{% static 'imgs/iphone-two.png' %}" alt="iphone" id="iphone-two" />
+		</div>
+	</div>
+</div>
 </body>
 </html>
