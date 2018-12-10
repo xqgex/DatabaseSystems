@@ -23,6 +23,6 @@ handler500 = "project.views.handler500"
 
 urlpatterns = [
 	url(r"^$", HomePageView.as_view(), name="home"),
-	url(r"^api/", include("project.api")),
+	url(r"^api/", include("project.api_urls")),
 	url(r"^admin/", admin.site.urls),
 ]
