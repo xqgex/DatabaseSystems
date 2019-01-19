@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 from django.conf.urls import include, url
-from project.api import apiSuggestion
+from project.api import *
 
 urlpatterns = [
-	url(r"^get_list/", apiSuggestion, name="api_get_list"),
+	url(r"^get_diets/", apiGetDiets, name="api_get_diets"),
+	url(r"^get_ingredients_suggestion/", apiIngredientsSuggestion, name="api_get_ingredients_suggestion"),
+	url(r"^get_recipes_suggestion/", apiRecipesSuggestion, name="api_get_recipes_suggestion"),
 ]
