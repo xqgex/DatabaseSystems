@@ -40,7 +40,7 @@
 			var sort_by = "sort_by_name";
 			var page_number = 0;
 			var search_results_count = 0;
-			var selected_recipes = 0;
+			var selected_recipes = new Set();
 			var filter_mapping_dict = {
 				"search_filter": "#md-panel-search",
 				"diet_filter": "#md-panel-diet",
@@ -169,16 +169,20 @@
 				}
 			});
 			$("#recipes-list").on("click", ".add_recipe", function(e) {
+				var pressed_id = $(this).parent().parent()[0].id;
 				if ($(this).find("i").hasClass("unmarked")) {
-					if (selected_recipes < 3) {
+					if (selected_recipes.size < 5) {
 						$(this).find("i").removeClass("far").removeClass("unmarked").addClass("fas").addClass("marked");
-						selected_recipes += 1;
+						selected_recipes.add(pressed_id);
 					}
 				} else {
 					$(this).find("i").removeClass("fas").removeClass("marked").addClass("far").addClass("unmarked");
-					if (0 < selected_recipes) {
-						selected_recipes -= 1;
-					}
+					selected_recipes.delete(pressed_id);
+				}
+				if (selected_recipes.size == 0) {
+					$("#selected_sum").html("&nbsp;");
+				} else {
+					$("#selected_sum").html("You have selected " + selected_recipes.size + " out of maximum of 5 recipes, <a href=\"#Ingredients\">Continue</a>.");
 				}
 			});
 			$("#md-panel-diet").on("click", ".filter_menu_item", function(e) {
@@ -365,6 +369,7 @@
 									paginationVisability();
 								}
 							} else {
+								var loop_add_class;
 								for (var i = 0; i < data.message.items.length; ++i) {
 									loop_prep_array = data.message.items[i].prep_time.split(":", 3);
 									if (loop_prep_array[0] == "01") {
@@ -379,6 +384,11 @@
 									} else {
 										loop_prep_minutes = "";
 									}
+									if (selected_recipes.has("recipe_n_" + data.message.items[i].id)) {
+										loop_add_class = "fas fa-check-circle marked";
+									} else {
+										loop_add_class = "far fa-check-circle unmarked";
+									}
 									$("#recipes-list").append("\
 							<div class=\"each_recipe_parent\" id=\"recipe_n_" + data.message.items[i].id + "\">\
 								<div class=\"each_recipe\">\
@@ -392,7 +402,7 @@
 											</div>\
 										</div>\
 									</a>\
-									<div class=\"add_recipe\" title=\"Add Recipe\"><i class=\"add_recipe2 far fa-check-circle unmarked\"></i></div>\
+									<div class=\"add_recipe\" title=\"Add Recipe\"><i class=\"" + loop_add_class + "\"></i></div>\
 								</div>\
 							</div>");
 								}
@@ -462,6 +472,7 @@
 			<div class="box fp-auto-height-responsive">
 				<h2>Let's start!</h2>
 				So, What do you want to cook today?
+				<div class="filter_chip_container" id="selected_sum">&nbsp;</div>
 				<div class="filter_chip_container">
 					<div class="filter_row">
 						<div class="filter_option" id="search_filter"><i class="fa fa-search" aria-hidden="true"></i></div>
