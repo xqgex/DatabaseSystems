@@ -36,6 +36,14 @@
 			var pagesTitle = ["Home Page", "What can I do?", "Page number 3", "Page number 4"];
 			var diet_not_loaded = true;
 			var md_cover = false;
+			var user_filter_text = false;
+			var sort_by = "sort_by_name";
+			var filter_mapping_dict = {
+				"search_filter": "#md-panel-search",
+				"diet_filter": "#md-panel-diet",
+				"prep_time_filter": "#md-panel-prep",
+				"ingredient_filter": "#md-panel-ingredient"
+			};
 			$("#noscript").attr("style","display: none;"),
 			$("#fullpage").fullpage({
 				verticalCentered: false,
@@ -59,18 +67,21 @@
 									diets.empty();
 									prep_from.empty();
 									diets.append("<div class=\"filter_menu_item keyingredient_selected\" value=\"any\" style=\"cursor: pointer\">any&nbsp;<span class=\"small_text\">-  Any diet</span></div>");
-									for (var i = 0; i < data.message.list.length; i++) {
+									$("#selected_diet").text("any");
+									for (var i = 0; i < data.message.list.length; ++i) {
 										diets.append("<div class=\"filter_menu_item\" value=\"" + data.message.list[i].name + "\" style=\"cursor: pointer\">" + data.message.list[i].name + "&nbsp;<span class=\"small_text\">-  " + data.message.list[i].desc + "</span></div>");
 									}
 									prep_from.append("<option id=\"0\" value=\"0\">Any duration</option>");
-									for (var i = 1; i < 18; i++) {
+									for (var i = 1; i < 18; ++i) {
 										prep_from.append("<option id=\"" + i*10 + "\" value=\"" + i*10 + "\">" + int2duration(i*10) + "</option>");
 									}
 									prep_from.append("<option id=\"180\" value=\"180\">More then 3 hours</option>");
-									$("#selected_diet").text("Any diet");
+									$("#md-panel-search .md-panel").css("left", ($("#search_filter").position().left+390) + "px");
+									$("#md-panel-diet .md-panel").css("left", ($("#diet_filter").position().left+390) + "px");
+									$("#md-panel-prep .md-panel").css("left", ($("#prep_time_filter").position().left+390) + "px");
 									diet_not_loaded = false;
 									prep_from.change();
-									tempGenerateList(); // XXX XXX XXX
+									getRecipes();
 								}
 							}
 						});
@@ -108,6 +119,20 @@
 				e.preventDefault();
 				$.fn.fullpage.moveTo(4);
 			});
+			$(".sort_button").click(function(e) {
+				$(".sort_button").removeClass("sort_selected");
+				$(this).addClass("sort_selected");
+				if (sort_by != $(this)[0].id) {
+					$("#"+sort_by).find("i").removeClass("fa-chevron-circle-down");
+					$("#"+sort_by).find("i").removeClass("fa-chevron-circle-up");
+					sort_by = $(this)[0].id;
+				}
+				if ($(this).find("i").hasClass("fa-chevron-circle-down")) {
+					$(this).find("i").removeClass("fa-chevron-circle-down").addClass("fa-chevron-circle-up");
+				} else {
+					$(this).find("i").removeClass("fa-chevron-circle-up").addClass("fa-chevron-circle-down");
+				}
+			});
 			$("#md-cover").click(function(e) {
 				$(".md-panel-outer-wrapper").removeClass("_md-panel-shown").addClass("_md-panel-hidden");
 				md_cover = false;
@@ -116,27 +141,19 @@
 				$(".md-panel-outer-wrapper").removeClass("_md-panel-shown").addClass("_md-panel-hidden");
 				md_cover = false;
 			});
-			$("#search_filter").click(function(e) {
-				
-			});
-			$("#diet_filter").click(function(e) {
+			$(".filter_option").click(function(e) {
 				if (md_cover == true) {
 					$(".md-panel-outer-wrapper").removeClass("_md-panel-shown").addClass("_md-panel-hidden");
 				}
 				$("#md-cover").removeClass("_md-panel-hidden").addClass("_md-panel-shown");
-				$("#md-panel-diet").removeClass("_md-panel-hidden").addClass("_md-panel-shown");
+				$(filter_mapping_dict[$(this)[0].id]).removeClass("_md-panel-hidden").addClass("_md-panel-shown");
 				md_cover = true;
 			});
-			$("#prep_time_filter").click(function(e) {
-				if (md_cover == true) {
-					$(".md-panel-outer-wrapper").removeClass("_md-panel-shown").addClass("_md-panel-hidden");
-				}
-				$("#md-cover").removeClass("_md-panel-hidden").addClass("_md-panel-shown");
-				$("#md-panel-prep").removeClass("_md-panel-hidden").addClass("_md-panel-shown");
-				md_cover = true;
+			$("#page_prev").click(function(e) {
+				getRecipes(); // TODO
 			});
-			$("#ingredient_filter").click(function(e) {
-				
+			$("#page_next").click(function(e) {
+				getRecipes(); // TODO
 			});
 			$("#md-panel-diet").on("click", ".filter_menu_item", function(e) {
 				e.stopPropagation();
@@ -144,6 +161,8 @@
 				$(this).parent().find(".filter_menu_item").removeClass("keyingredient_selected");
 				$(this).addClass("keyingredient_selected");
 				$("#selected_diet").text($(this).attr("value"));
+				$("#md-panel-prep .md-panel").css("left", ($("#prep_time_filter").position().left+390) + "px");
+				$("#md-panel-ingredient .md-panel").css("left", ($("#ingredient_filter").position().left+390) + "px");
 			});
 			$("#PrepFrom").change(function () {
 				var prep_from = $(this).find(":selected")[0].id;
@@ -152,16 +171,29 @@
 				if (prep_from == 0) {
 					prep_to.append("<option id=\"0\" value=\"0\">Any duration</option>");
 				}
-				for (var i = 1; i < 18; i++) {
+				for (var i = 1; i < 18; ++i) {
 					if (prep_from <= i*10) {
 						prep_to.append("<option id=\"" + i*10 + "\" value=\"" + i*10 + "\">" + int2duration(i*10) + "</option>");
 					}
 				}
 				prep_to.append("<option id=\"180\" value=\"180\" selected>More then 3 hours</option>");
 				$("#selected_prep").text($(this).find(":selected")[0].text + " - " + $("#PrepTo").find(":selected")[0].text);
+				$("#md-panel-ingredient .md-panel").css("left", ($("#ingredient_filter").position().left+390) + "px");
 			});
 			$("#PrepTo").change(function () {
 				$("#selected_prep").text($(this).find(":selected")[0].text + " - " + $("#PrepTo").find(":selected")[0].text);
+				$("#md-panel-ingredient .md-panel").css("left", ($("#ingredient_filter").position().left+390) + "px");
+			});
+			$("#apiGetRecipesSuggestion").on('input', function() {
+				if (user_filter_text == true && $(this).val() == "") {
+					$("#search_filter .fa").removeClass("fa-search-plus").addClass("fa-search");
+					$("#search_filter .fa").css("color", "");
+					user_filter_text = false;
+				} else if (user_filter_text == false && $(this).val() != "") {
+					$("#search_filter .fa").removeClass("fa-search").addClass("fa-search-plus");
+					$("#search_filter .fa").css("color", "red");
+					user_filter_text = true;
+				}
 			});
 			$("#apiGetRecipesSuggestion").autocomplete({
 				source: function(request, response) {
@@ -170,16 +202,45 @@
 						dataType: "json",
 						data: {q: request.term},
 						success: function(data) {
-							response($.map(data.message.suggestions, function(item) {
-								return {
-									label: item.name + " - " + item.calories + " Calories",
-									value: item.name
-								};
-							}));
+							if (data.status == 200) {
+								response($.map(data.message.suggestions, function(item) {
+									return {
+										label: item.name + " - " + item.calories + " Calories",
+										value: item.name
+									};
+								}));
+							}
 						}
 					});
 				},
 				minLength: 3,
+				open: function() {$(this).removeClass("ui-corner-all").addClass("ui-corner-top");},
+				close: function() {$(this).removeClass("ui-corner-top").addClass("ui-corner-all");}
+			});
+			$(".apiGetingredientsSuggestion").autocomplete({
+				source: function(request, response) {
+					$.ajax({
+						url: "/api/get_ingredients_suggestion/",
+						dataType: "json",
+						data: {q: request.term},
+						success: function(data) {
+							if (data.status == 200) {
+								response($.map(data.message.suggestions, function(item) {
+									return {
+										label: item.name,
+										value: item.name
+									};
+								}));
+							}
+						}
+					});
+				},
+				change: function (e, ui) {
+					if (!ui.item) {
+						$(this).val("");
+					}
+				},
+				minLength: 2,
 				open: function() {$(this).removeClass("ui-corner-all").addClass("ui-corner-top");},
 				close: function() {$(this).removeClass("ui-corner-top").addClass("ui-corner-all");}
 			});
@@ -196,38 +257,69 @@
 					return "2 Hours " + (num-120) + " Minutes";
 				}
 			}
-			function tempGenerateList() { // XXX XXX XXX
-				for (var i = 0; i < 3; i++) {
-					$("#recipes").append("\
-							<div class=\"each_recipe_parent\">\
+			function getRecipes() {
+				var recipe_name = $("#apiGetRecipesSuggestion").val();
+				var diet = $("#md-container-diets .keyingredient_selected").attr("value");
+				var prep_from = $("#PrepFrom").find(":selected")[0].id;
+				var prep_to = $("#PrepTo").find(":selected")[0].id;
+				//var ingredients; // TODO TODO TODO
+				var sort_by = $("#bottom_row_content .sort_selected")[0].id;
+				var sort_order;
+				if ($("#"+sort_by).find("i").hasClass("fa-chevron-circle-down")) {
+					sort_order = "desc";
+				} else {
+					sort_order = "asc";
+				}
+				var page_number = 0; // TODO TODO TODO
+				$.ajax({
+					url: "/api/search_recipes/",
+					dataType: "json",
+					data:  {recipe_name: recipe_name,
+						diet: diet,
+						prep_from: prep_from,
+						prep_to: prep_to,
+						sort_by: sort_by,
+						sort_order: sort_order,
+						page_number: page_number},
+					success: function(data) {
+						if (data.status == 200) {
+							var loop_prep_array;
+							var loop_prep_hours;
+							var loop_prep_minutes;
+							$("#recipes").empty();
+							for (var i = 0; i < data.message.items.length; ++i) {
+								loop_prep_array = data.message.items[i].prep_time.split(":", 3);
+								if (loop_prep_array[0] == "01") {
+									loop_prep_hours = "1 hour";
+								} else if (loop_prep_array[0] != "00") {
+									loop_prep_hours = parseInt(loop_prep_array[0]) + " hours";
+								} else {
+									loop_prep_hours = "";
+								}
+								if (loop_prep_array[1] != "00") {
+									loop_prep_minutes = " " + parseInt(loop_prep_array[1]) + " Minutes";
+								} else {
+									loop_prep_minutes = "";
+								}
+								$("#recipes").append("\
+							<div class=\"each_recipe_parent\" id=\"recipe_n_" + data.message.items[i].id + "\">\
 								<div class=\"each_recipe\">\
-									<a target=\"_blank\" href=\"https://Lorem.ipsum\">\
-										<div class=\"recipe\" style=\"background-image: url('https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg');\">\
+									<a target=\"_blank\" href=\"" + data.message.items[i].url + "\">\
+										<div class=\"recipe\" style=\"background-image: url('" + data.message.items[i].image + "');\">\
 											<div class=\"recipe-info\">\
-												<div class=\"recipe-title\">Balsamic-Glazed Steak Rolls</div>\
+												<div class=\"recipe-title\">" + data.message.items[i].name + "</div>\
 												<div class=\"recipe-info-footer\">\
-													<span>2 hours 15 Minutes, 1,999 Calories</span>\
-												</div>\
-											</div>\
-										</div>\
-									</a>\
-								</div>\
-							</div>\
-							<div class=\"each_recipe_parent\">\
-								<div class=\"each_recipe\">\
-									<a target=\"_blank\" href=\"https://Lorem.ipsum\">\
-										<div class=\"recipe\" style=\"background-image: url('https://s3.amazonaws.com/supercook-thumbs/363402.jpg');\">\
-											<div class=\"recipe-info\">\
-												<div class=\"recipe-title\">Balsamic-Glazed Steak Rolls</div>\
-												<div class=\"recipe-info-footer\">\
-													<span>2 hours 15 Minutes, 1,999 Calories</span>\
+													<span>" + loop_prep_hours + loop_prep_minutes + ", " + parseInt(data.message.items[i].calories).toLocaleString() + " Calories</span>\
 												</div>\
 											</div>\
 										</div>\
 									</a>\
 								</div>\
 							</div>");
-				}
+							}
+						}
+					}
+				});
 			}
 		});
 	</script>
@@ -294,15 +386,42 @@
 				</div>
 				<div class="row clearfix" id="recipes-content-container">
 					<div class="recipes-container">
-						<div id="recipes" class="clearfix"></div>
+						<div id="recipes" class="clearfix">
+						</div>
+					</div>
+				</div>
+				<div class="filter_chip_container">
+					<div class="filter_row" id="bottom_row_content">
+						<div class="filter_menu_item">Sort by</div>
+						<div class="filter_menu_item sort_button sort_selected" id="sort_by_name">Recipe name&nbsp;<i class="fa fa-chevron-circle-down"></i></div>
+						<div class="filter_menu_item sort_button" id="sort_by_prep">Preparation time&nbsp;<i class="fa"></i></div>
+						<div class="filter_menu_item sort_button" id="sort_by_cal">Calories&nbsp;<i class="fa"></i></div>
+						<div class="filter_menu_item" style="flex-grow: 1"></div>
+						<div class="filter_menu_item" id="page_prev">Previous</div>
+						<div class="filter_menu_item" id="page_status">Showing results ?-? out of ?</div>
+						<div class="filter_menu_item" id="page_next">Next</div>
 					</div>
 				</div>
 				<div class="md-panel-outer-wrapper _md-panel-hidden" id="md-cover">
 					<div class="md-panel _md-panel-backdrop _md-opaque-enter"></div>
 				</div>
+				<div class="md-panel-outer-wrapper _md-panel-hidden" id="md-panel-search"> 
+					<div class="_md-panel-focus-trap"></div>
+					<div class="md-panel" style="left: 400px;">
+						<div class="keyingredient_menu filter_menu">
+							<h6 class="md-subhead" style="min-width: 224px">Select recipe by name</h6>
+							<hr width="90%">
+							<div class="filter_menu_item">
+								<input type="text" name="recipesSearch" id="apiGetRecipesSuggestion" class="ui-corner-all"/>
+							</div>
+						</div>
+						<div class="md-ok"><button class="md-button" type="button" style="width: 100%;padding: 10px;">Confirm</button></div>
+					</div>
+					<div class="_md-panel-focus-trap"></div>
+				</div>
 				<div class="md-panel-outer-wrapper _md-panel-hidden" id="md-panel-diet"> 
 					<div class="_md-panel-focus-trap"></div>
-					<div class="md-panel" style="top: 220px; left: 450px;">
+					<div class="md-panel" style="left: 450px;">
 						<div class="keyingredient_menu filter_menu">
 							<h6 class="md-subhead" style="min-width: 224px">Select diet</h6>
 							<hr width="90%">
@@ -316,9 +435,9 @@
 				</div>
 				<div class="md-panel-outer-wrapper _md-panel-hidden" id="md-panel-prep"> 
 					<div class="_md-panel-focus-trap"></div>
-					<div class="md-panel" style="top: 220px; left: 560px;">
+					<div class="md-panel" style="left: 560px;">
 						<div class="keyingredient_menu filter_menu">
-							<h6 class="md-subhead" style="min-width: 224px">preparation time</h6>
+							<h6 class="md-subhead" style="min-width: 224px">Preparation time</h6>
 							<hr width="90%">
 							<div class="filter_menu_item">
 								Between&nbsp;
@@ -337,20 +456,29 @@
 					</div>
 					<div class="_md-panel-focus-trap"></div>
 				</div>
-<!--				<section style="clear: both;display: flex">-->
-<!--					<button class="md-button" type="button" style="width:300px">Load more recipes</button>-->
-<!--				</section>-->
-<!--				<div class="ui-widget">-->
-<!--					Recipe name-->
-<!--					<input type="text" name="recipesSearch" id="apiGetRecipesSuggestion"/>-->
-<!--				</div>-->
-<!--				<div class="ui-widget">-->
-<!--					Ingredients-->
-<!--					<ul>-->
-<!--						<li><input type="text" name="ingredientsSearch1" class="apiGetingredientsSuggestion"/> <input type="checkbox" name="cb1" checked> Included</li>-->
-<!--						<li><input type="text" name="ingredientsSearch2" class="apiGetingredientsSuggestion"/> <input type="checkbox" name="cb2" checked> Included</li>-->
-<!--					</ul>-->
-<!--				</div>-->
+				<div class="md-panel-outer-wrapper _md-panel-hidden" id="md-panel-ingredient"> 
+					<div class="_md-panel-focus-trap"></div>
+					<div class="md-panel" style="left: 880px;">
+						<div class="keyingredient_menu filter_menu">
+							<h6 class="md-subhead" style="min-width: 224px">Filter by ingredients</h6>
+							<hr width="90%">
+							<div class="filter_menu_item">Include</div>
+							<div class="filter_menu_item"><input type="text" name="ingredientsInc1" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" name="ingredientsInc2" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" name="ingredientsInc3" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" name="ingredientsInc4" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" name="ingredientsInc5" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item">Exclude</div>
+							<div class="filter_menu_item"><input type="text" name="ingredientsExc1" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" name="ingredientsExc2" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" name="ingredientsExc3" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" name="ingredientsExc4" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" name="ingredientsExc5" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+						</div>
+						<div class="md-ok"><button class="md-button" type="button" style="width: 100%;padding: 10px;">Confirm</button></div>
+					</div>
+					<div class="_md-panel-focus-trap"></div>
+				</div>
 			</div>
 		</div>
 	</div>
