@@ -16,7 +16,7 @@
 	<link rel="stylesheet" href="{% static 'css/jquery-ui.min.css' %}">
 	<link rel="stylesheet" href="{% static 'css/jquery-ui.structure.min.css' %}">
 	<link rel="stylesheet" href="{% static 'css/jquery-ui.theme.min.css' %}">
-	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
 	<style>
 		#section1.load-background{
 			background:url({% static 'images/bg1.jpg' %}) no-repeat center center;
@@ -33,13 +33,14 @@
 	<script type="text/javascript" src="{% static 'js/jquery.fullPage.js' %}"></script>
 	<script type="text/javascript">
 		$(document).ready(function() {
-			var pagesTitle = ["Home Page", "What can I do?", "Page number 3", "Page number 4"];
+			var pagesTitle = ["Home Page", ">What Can You Do?", "Recipes Search", "Required Ingredients"];
 			var diet_not_loaded = true;
 			var md_cover = false;
 			var user_filter_text = false;
 			var sort_by = "sort_by_name";
 			var page_number = 0;
 			var search_results_count = 0;
+			var selected_recipes = 0;
 			var filter_mapping_dict = {
 				"search_filter": "#md-panel-search",
 				"diet_filter": "#md-panel-diet",
@@ -51,14 +52,14 @@
 				verticalCentered: false,
 				css3: false,
 				menu: "#menu",
-				anchors: ["Home", "WhatCanIDo", "3rdPage", "4thPage"],
+				anchors: ["Home", "WhatCanYouDo", "Recipes", "Ingredients"],
 				sectionsColor: ["#F0F2F4", "#fff", "#fff", "#fff"],
 				navigation: true,
 				navigationPosition: "right",
 				navigationTooltips: pagesTitle,
 				responsiveWidth: 900,
 				afterLoad: function(anchorLink, index) {
-					if (index == 4 && diet_not_loaded) {
+					if (index == 3 && diet_not_loaded) {
 						$.ajax({
 							url: "/api/get_diets/",
 							dataType: "json",
@@ -101,9 +102,7 @@
 					var destinationSection = $(".section").eq(nextIndex-1);
 					destinationSection.addClass("load-background");
 				},
-				afterResponsive: function(isResponsive) {
-					
-				}
+				afterResponsive: function(isResponsive) { }
 			});
 			$("#moveToHome").click(function(e) {
 				e.preventDefault();
@@ -134,6 +133,7 @@
 				} else {
 					$(this).find("i").removeClass("fa-chevron-circle-up").addClass("fa-chevron-circle-down");
 				}
+				getRecipes();
 			});
 			$("#md-cover").click(function(e) {
 				$(".md-panel-outer-wrapper").removeClass("_md-panel-shown").addClass("_md-panel-hidden");
@@ -142,6 +142,7 @@
 			$(".md-ok").click(function(e) {
 				$(".md-panel-outer-wrapper").removeClass("_md-panel-shown").addClass("_md-panel-hidden");
 				md_cover = false;
+				getRecipes();
 			});
 			$(".filter_option").click(function(e) {
 				if (md_cover == true) {
@@ -152,27 +153,32 @@
 				md_cover = true;
 			});
 			$("#page_prev").click(function(e) {
-				if (page_number == Math.ceil(search_results_count/6)) {
-					$("#page_next").removeClass("pagination_hidden")
-				}
 				if (0 < page_number) {
 					page_number -= 1;
 					getRecipes();
-				}
-				if (page_number == 0) {
-					$("#page_prev").addClass("pagination_hidden")
+				} else {
+					paginationVisability();
 				}
 			});
 			$("#page_next").click(function(e) {
-				if (page_number == 0) {
-					$("#page_prev").removeClass("pagination_hidden")
-				}
-				if (page_number < Math.ceil(search_results_count/6)) {
+				if (page_number <= Math.ceil(search_results_count/6)) {
 					page_number += 1;
 					getRecipes();
+				} else {
+					paginationVisability();
 				}
-				if (page_number == Math.ceil(search_results_count/6)) {
-					$("#page_next").addClass("pagination_hidden")
+			});
+			$("#recipes-list").on("click", ".add_recipe", function(e) {
+				if ($(this).find("i").hasClass("unmarked")) {
+					if (selected_recipes < 3) {
+						$(this).find("i").removeClass("far").removeClass("unmarked").addClass("fas").addClass("marked");
+						selected_recipes += 1;
+					}
+				} else {
+					$(this).find("i").removeClass("fas").removeClass("marked").addClass("far").addClass("unmarked");
+					if (0 < selected_recipes) {
+						selected_recipes -= 1;
+					}
 				}
 			});
 			$("#md-panel-diet").on("click", ".filter_menu_item", function(e) {
@@ -277,6 +283,36 @@
 					return "2 Hours " + (num-120) + " Minutes";
 				}
 			}
+			function paginationVisability() {
+				if (page_number == 0) {
+					if ($("#page_prev").hasClass("pagination_hidden") == false) {
+						$("#page_prev").addClass("pagination_hidden");
+					}
+					if (search_results_count <= 6) {
+						if ($("#page_next").hasClass("pagination_hidden") == false) {
+							$("#page_next").addClass("pagination_hidden");
+						}
+					} else {
+						if ($("#page_next").hasClass("pagination_hidden")) {
+							$("#page_next").removeClass("pagination_hidden");
+						}
+					}
+				} else if (page_number+1 == Math.ceil(search_results_count/6)) {
+					if ($("#page_prev").hasClass("pagination_hidden")) {
+						$("#page_prev").removeClass("pagination_hidden");
+					}
+					if ($("#page_next").hasClass("pagination_hidden") == false) {
+						$("#page_next").addClass("pagination_hidden");
+					}
+				} else {
+					if ($("#page_prev").hasClass("pagination_hidden")) {
+						$("#page_prev").removeClass("pagination_hidden");
+					}
+					if ($("#page_next").hasClass("pagination_hidden")) {
+						$("#page_next").removeClass("pagination_hidden");
+					}
+				}
+			}
 			function getRecipes() {
 				var recipe_name = $("#apiGetRecipesSuggestion").val();
 				var diet = $("#md-container-diets .keyingredient_selected").attr("value");
@@ -318,22 +354,32 @@
 							var loop_prep_array;
 							var loop_prep_hours;
 							var loop_prep_minutes;
-							$("#recipes").empty();
-							for (var i = 0; i < data.message.items.length; ++i) {
-								loop_prep_array = data.message.items[i].prep_time.split(":", 3);
-								if (loop_prep_array[0] == "01") {
-									loop_prep_hours = "1 hour";
-								} else if (loop_prep_array[0] != "00") {
-									loop_prep_hours = parseInt(loop_prep_array[0]) + " hours";
+							$("#recipes-list").empty();
+							search_results_count = parseInt(data.message.results);
+							if (Math.ceil(search_results_count/6) <= page_number) {
+								if (page_number != 0) {
+									page_number = 0;
+									getRecipes();
 								} else {
-									loop_prep_hours = "";
+									$("#page_status").text("Showing results 0-0 out of 0");
+									paginationVisability();
 								}
-								if (loop_prep_array[1] != "00") {
-									loop_prep_minutes = " " + parseInt(loop_prep_array[1]) + " Minutes";
-								} else {
-									loop_prep_minutes = "";
-								}
-								$("#recipes").append("\
+							} else {
+								for (var i = 0; i < data.message.items.length; ++i) {
+									loop_prep_array = data.message.items[i].prep_time.split(":", 3);
+									if (loop_prep_array[0] == "01") {
+										loop_prep_hours = "1 hour";
+									} else if (loop_prep_array[0] != "00") {
+										loop_prep_hours = parseInt(loop_prep_array[0]) + " hours";
+									} else {
+										loop_prep_hours = "";
+									}
+									if (loop_prep_array[1] != "00") {
+										loop_prep_minutes = " " + parseInt(loop_prep_array[1]) + " Minutes";
+									} else {
+										loop_prep_minutes = "";
+									}
+									$("#recipes-list").append("\
 							<div class=\"each_recipe_parent\" id=\"recipe_n_" + data.message.items[i].id + "\">\
 								<div class=\"each_recipe\">\
 									<a target=\"_blank\" href=\"" + data.message.items[i].url + "\">\
@@ -346,10 +392,18 @@
 											</div>\
 										</div>\
 									</a>\
+									<div class=\"add_recipe\" title=\"Add Recipe\"><i class=\"add_recipe2 far fa-check-circle unmarked\"></i></div>\
 								</div>\
 							</div>");
-								search_results_count = parseInt(data.message.results);
-								$("#page_status").text("Showing results " + ((page_number*6)+1) + "-" + ((page_number+1)*6) + " out of " + search_results_count.toLocaleString());
+								}
+								var upto;
+								if ((page_number+1)*6 < search_results_count) {
+									upto = (page_number+1)*6;
+								} else {
+									upto = search_results_count;
+								}
+								$("#page_status").text("Showing results " + ((page_number*6)+1).toLocaleString() + "-" + upto.toLocaleString() + " out of " + search_results_count.toLocaleString());
+								paginationVisability();
 							}
 						}
 					}
@@ -365,9 +419,9 @@
 <div id="header">FoodFinder
 	<ul id="menu">
 		<li data-menuanchor="Home" class="active"><a id="moveToHome" href="#">Home Page</a></li>
-		<li data-menuanchor="WhatCanIDo"><a id="moveToPage2" href="#">What can I do?</a></li>
-		<li data-menuanchor="3rdPage"><a id="moveToPage3" href="#">Page number 3</a></li>
-		<li data-menuanchor="4thPage"><a id="moveToPage4" href="#">Page number 4</a></li>
+		<li data-menuanchor="WhatCanYouDo"><a id="moveToPage2" href="#">What Can You Do?</a></li>
+		<li data-menuanchor="Recipes"><a id="moveToPage3" href="#">Recipes Search</a></li>
+		<li data-menuanchor="Ingredients"><a id="moveToPage4" href="#">Required Ingredients</a></li>
 	</ul>
 </div>
 <div id="footer">The site was build as a the final project at Tel Aviv University Database Systems (Fall 2018/19) course (0368-3458).</div>
@@ -376,40 +430,38 @@
 		<div class="wrap">
 			<div class="box fp-auto-height-responsive">
 				<h1>FoodFinder</h1>
-				A new and innovative way to find the best restaurant that <strong>fits</strong> you.<br/>
-				Here you can find recipes by ingredient count, preparation time and diet..<br/>
-				Ready? <a href="#WhatCanIDo">let's find you somewhere to eat</a>
+				A new and innovative way to find the best recipe that <strong>fits</strong> you.<br/>
+				Here you can find recipes by ingredients, preparation time and diet!<br/>
+				Ready? <a href="#WhatCanYouDo">let's find you somewhere to eat</a>
 			</div>
 		</div>
 	</div>
 	<div class="section moveDown" id="section1">
 		<div class="wrap">
-			<div class="imgsContainer">
-				<img src="{% static 'images/image0.jpg' %}" alt="Plate Left" id="plate_left"/>
-				<img src="{% static 'images/image1.jpg' %}" alt="Plate Middle" id="plate_middle"/>
-				<img src="{% static 'images/image2.png' %}" alt="Plate Right" id="plate_right"/>
-			</div>
 			<div class="box fp-auto-height-responsive">
-				<h2>What Can I Do?</h2>
-				<strong>Lorem ipsum</strong> dolor sit amet, consectetur <a href="#3rdPage">adipiscing elit</a>.
-				Quisque eget dolor et leo porttitor <a href="#4thPage">consectetur id sit</a>.
-			</div>
-		</div>
-	</div>
-	<div class="section" id="section2">
-		<div class="wrap">
-			<div class="box fp-auto-height-responsive">
-				<h2>Lorem ipsum dolor sit amet.</h2>
-				 <strong>Lorem ipsum</strong> dolor sit amet, consectetur adipiscing elit. Suspendisse iaculis,
-				 dolor non imperdiet vulputate, lorem dui posuere ipsum, nec tincidunt nunc tellus ultrices orci.
-				 Donec vel luctus ipsum. Proin a venenatis leo, eget blandit.
+				<h2>What Can You Do?</h2>
+				FoodFinder allows you to <a href="#Recipes">search a recipe</a> by a variety of properties -
+				<ul>
+					<li>Preparation <strong>Time</strong></li>
+					<li>Ingredients you want to be <strong>included</strong></li>
+					<li>Ingredients you want to be <strong>excluded</strong></li>
+					<li>Specific <strong>Diet</strong></li>
+				</ul><br/>
+				We know that sometimes you need to make <strong>more than a single dish</strong>..<br/>
+				This might be <strong>tricky</strong> with a limited time frame, or ingredients.<br/>
+				That is why we also offer a query which finds for you <strong>up to 5 recipes</strong> you could prepare in a <strong>predefined time frame</strong>!<br/>
+				You could also narrow that search by defining Ingredient as before.<br/>
+				<br/>
+				Let's say you want to prepare 3 dishes in 2 hours :)<br/>
+				You can pick your 3 recipes and get a <a href="#Ingredients"><strong>shopping list</strong></a> for your needed ingredients!
 			</div>
 		</div>
 	</div>
-	<div class="section moveDown" id="section3">
+	<div class="section moveDown" id="section2">
 		<div class="wrap">
 			<div class="box fp-auto-height-responsive">
-				<h2>Lorem ipsum dolor sit amet.</h2>
+				<h2>Let's start!</h2>
+				So, What do you want to cook today?
 				<div class="filter_chip_container">
 					<div class="filter_row">
 						<div class="filter_option" id="search_filter"><i class="fa fa-search" aria-hidden="true"></i></div>
@@ -420,7 +472,7 @@
 				</div>
 				<div class="row clearfix" id="recipes-content-container">
 					<div class="recipes-container">
-						<div id="recipes" class="clearfix">
+						<div id="recipes-list" class="clearfix">
 						</div>
 					</div>
 				</div>
@@ -513,6 +565,14 @@
 					</div>
 					<div class="_md-panel-focus-trap"></div>
 				</div>
+			</div>
+		</div>
+	</div>
+	<div class="section" id="section3">
+		<div class="wrap">
+			<div class="box fp-auto-height-responsive">
+				<h2>Last Step! </h2>
+				 Here you can get a shopping list for your chosen recipes.
 			</div>
 		</div>
 	</div>
