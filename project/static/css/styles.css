@@ -493,6 +493,7 @@ img{
 .filter_row #page_status{font-size:12px;padding:0 6px}
 .filter_row #page_prev,.filter_row #page_next{cursor:pointer;padding:0 6px}
 .filter_row .sort_selected{background-color:rgba(0, 0, 0, 0.2)}
+.filter_row .pagination_hidden{display:none}
 .filter_option{padding:8px;opacity:.9;text-align:center;margin-top:5px;margin-right:12px;cursor:pointer}
 .filter_menu{background:#fff!important;border:1px solid rgba(0,0,0,.2)!important;border-radius:4px!important;box-shadow:0 14px 36px 2px rgba(0,0,0,.15)!important;overflow-y:auto!important;overflow-x:hidden!important;padding:0 5px;white-space:normal!important;display:inline-block!important;visibility:visible!important;height:300px}
 .filter_menu_item{align-items:center;display:flex;height:28px;padding:0 16px;font-size:18px;position:relative;transition:background .15s linear;width:auto;margin-bottom:5px}

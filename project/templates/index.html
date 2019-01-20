@@ -38,6 +38,8 @@
 			var md_cover = false;
 			var user_filter_text = false;
 			var sort_by = "sort_by_name";
+			var page_number = 0;
+			var search_results_count = 0;
 			var filter_mapping_dict = {
 				"search_filter": "#md-panel-search",
 				"diet_filter": "#md-panel-diet",
@@ -150,10 +152,28 @@
 				md_cover = true;
 			});
 			$("#page_prev").click(function(e) {
-				getRecipes(); // TODO
+				if (page_number == Math.ceil(search_results_count/6)) {
+					$("#page_next").removeClass("pagination_hidden")
+				}
+				if (0 < page_number) {
+					page_number -= 1;
+					getRecipes();
+				}
+				if (page_number == 0) {
+					$("#page_prev").addClass("pagination_hidden")
+				}
 			});
 			$("#page_next").click(function(e) {
-				getRecipes(); // TODO
+				if (page_number == 0) {
+					$("#page_prev").removeClass("pagination_hidden")
+				}
+				if (page_number < Math.ceil(search_results_count/6)) {
+					page_number += 1;
+					getRecipes();
+				}
+				if (page_number == Math.ceil(search_results_count/6)) {
+					$("#page_next").addClass("pagination_hidden")
+				}
 			});
 			$("#md-panel-diet").on("click", ".filter_menu_item", function(e) {
 				e.stopPropagation();
@@ -262,7 +282,18 @@
 				var diet = $("#md-container-diets .keyingredient_selected").attr("value");
 				var prep_from = $("#PrepFrom").find(":selected")[0].id;
 				var prep_to = $("#PrepTo").find(":selected")[0].id;
-				//var ingredients; // TODO TODO TODO
+				var ingredients_inc = [];
+				var ingredients_exc = [];
+				for (var i = 1; i < 6; ++i) {
+					if ($("#ingredientsInc" + i).val() != "") {
+						ingredients_inc.push($("#ingredientsInc" + i).val());
+					}
+					if ($("#ingredientsExc" + i).val() != "") {
+						ingredients_exc.push($("#ingredientsExc" + i).val());
+					}
+				}
+				ingredients_inc = [...new Set(ingredients_inc)];
+				ingredients_exc = [...new Set(ingredients_exc)];
 				var sort_by = $("#bottom_row_content .sort_selected")[0].id;
 				var sort_order;
 				if ($("#"+sort_by).find("i").hasClass("fa-chevron-circle-down")) {
@@ -270,7 +301,6 @@
 				} else {
 					sort_order = "asc";
 				}
-				var page_number = 0; // TODO TODO TODO
 				$.ajax({
 					url: "/api/search_recipes/",
 					dataType: "json",
@@ -278,9 +308,11 @@
 						diet: diet,
 						prep_from: prep_from,
 						prep_to: prep_to,
+						ingredients_inc: ingredients_inc.join("+"),
+						ingredients_exc: ingredients_exc.join("+"),
 						sort_by: sort_by,
 						sort_order: sort_order,
-						page_number: page_number},
+						page: page_number},
 					success: function(data) {
 						if (data.status == 200) {
 							var loop_prep_array;
@@ -316,6 +348,8 @@
 									</a>\
 								</div>\
 							</div>");
+								search_results_count = parseInt(data.message.results);
+								$("#page_status").text("Showing results " + ((page_number*6)+1) + "-" + ((page_number+1)*6) + " out of " + search_results_count.toLocaleString());
 							}
 						}
 					}
@@ -397,7 +431,7 @@
 						<div class="filter_menu_item sort_button" id="sort_by_prep">Preparation time&nbsp;<i class="fa"></i></div>
 						<div class="filter_menu_item sort_button" id="sort_by_cal">Calories&nbsp;<i class="fa"></i></div>
 						<div class="filter_menu_item" style="flex-grow: 1"></div>
-						<div class="filter_menu_item" id="page_prev">Previous</div>
+						<div class="filter_menu_item pagination_hidden" id="page_prev">Previous</div>
 						<div class="filter_menu_item" id="page_status">Showing results ?-? out of ?</div>
 						<div class="filter_menu_item" id="page_next">Next</div>
 					</div>
@@ -463,17 +497,17 @@
 							<h6 class="md-subhead" style="min-width: 224px">Filter by ingredients</h6>
 							<hr width="90%">
 							<div class="filter_menu_item">Include</div>
-							<div class="filter_menu_item"><input type="text" name="ingredientsInc1" class="apiGetingredientsSuggestion ui-corner-all"/></div>
-							<div class="filter_menu_item"><input type="text" name="ingredientsInc2" class="apiGetingredientsSuggestion ui-corner-all"/></div>
-							<div class="filter_menu_item"><input type="text" name="ingredientsInc3" class="apiGetingredientsSuggestion ui-corner-all"/></div>
-							<div class="filter_menu_item"><input type="text" name="ingredientsInc4" class="apiGetingredientsSuggestion ui-corner-all"/></div>
-							<div class="filter_menu_item"><input type="text" name="ingredientsInc5" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsInc1" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsInc2" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsInc3" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsInc4" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsInc5" class="apiGetingredientsSuggestion ui-corner-all"/></div>
 							<div class="filter_menu_item">Exclude</div>
-							<div class="filter_menu_item"><input type="text" name="ingredientsExc1" class="apiGetingredientsSuggestion ui-corner-all"/></div>
-							<div class="filter_menu_item"><input type="text" name="ingredientsExc2" class="apiGetingredientsSuggestion ui-corner-all"/></div>
-							<div class="filter_menu_item"><input type="text" name="ingredientsExc3" class="apiGetingredientsSuggestion ui-corner-all"/></div>
-							<div class="filter_menu_item"><input type="text" name="ingredientsExc4" class="apiGetingredientsSuggestion ui-corner-all"/></div>
-							<div class="filter_menu_item"><input type="text" name="ingredientsExc5" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsExc1" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsExc2" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsExc3" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsExc4" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsExc5" class="apiGetingredientsSuggestion ui-corner-all"/></div>
 						</div>
 						<div class="md-ok"><button class="md-button" type="button" style="width: 100%;padding: 10px;">Confirm</button></div>
 					</div>
