@@ -735,5 +735,5 @@ def apiSearchRecipes(request):
 	else:
 		return apiDefaultResponse(request)
 
-# def apiSearchMeals(request):
-#
+def apiSearchMeals(request):
+	return apiSearchRecipes(request)
