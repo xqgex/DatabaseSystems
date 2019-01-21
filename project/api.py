@@ -3,34 +3,35 @@ import json
 import mysql.connector
 import pymysql.cursors
 from project.views import jsonApi
+import datetime
 
 GLOBAL_RESULTS_LIMIT = 100
 GLOBAL_CALC_RESULTS_LIMITS = 10000
 
 ####################################################################
-####	Functions:						####
+####	Functions:												####
 ####################################################################
-# 1)  def getCursor():						####
-# 2)  def apiShowTables():					####
-# 3)  def apiSuggestion(request):				####
-# 4)  def cursorToJSON(cursor):					####
-# 5)  def apiRecipeByNumOfIngredients(num):			####
-# 6)  def apiRecipeByMaxPrepTime(time):				####
-# 7)  def apiRecipeByDiet(diet):				####
-# 8)  def apiRecipeByCategory(category):			####
-# 9)  def apiRecipeByDishName(name):				####
+# 1)  def getCursor():											####
+# 2)  def apiShowTables():										####
+# 3)  def apiSuggestion(request):								####
+# 4)  def cursorToJSON(cursor):									####
+# 5)  def apiRecipeByNumOfIngredients(num):						####
+# 6)  def apiRecipeByMaxPrepTime(time):							####
+# 7)  def apiRecipeByDiet(diet):								####
+# 8)  def apiRecipeByCategory(category):						####
+# 9)  def apiRecipeByDishName(name):							####
 # 10) def apiMealByNumRecipiesAndTotalTime(numRecipies, time):	####
-# 11) def apiOneMealByTotalTime(time):				####
-# 12) def apiTwoMealsByTotalTime(time):				####
-# 13) def apiThreeMealsByTotalTime(time):			####
-# 14) def apiFourMealsByTotalTime(time):			####
-# 15) def apiFiveMealsByTotalTime(time):			####
-# 16) def apiRecipeByIngredientList(list):			####
-# 17) def apiRecipeByOneIngredient(list):			####
-# 18) def apiRecipeByTwoIngredients(list):			####
-# 19) def apiRecipeByThreeIngredients(list):			####
-# 20) def apiRecipeByFourIngredients(list):			####
-# 21) def apiRecipeByFiveIngredients(list):			####
+# 11) def apiOneMealByTotalTime(time):							####
+# 12) def apiTwoMealsByTotalTime(time):							####
+# 13) def apiThreeMealsByTotalTime(time):						####
+# 14) def apiFourMealsByTotalTime(time):						####
+# 15) def apiFiveMealsByTotalTime(time):						####
+# 16) def apiRecipeByIngredientList(list):						####
+# 17) def apiRecipeByOneIngredient(list):						####
+# 18) def apiRecipeByTwoIngredients(list):						####
+# 19) def apiRecipeByThreeIngredients(list):					####
+# 20) def apiRecipeByFourIngredients(list):						####
+# 21) def apiRecipeByFiveIngredients(list):						####
 ####################################################################
 def getCursor():
 	connection = pymysql.connect(host='localhost',
@@ -38,7 +39,6 @@ def getCursor():
 					user='DbMysql14',
 					password='DbMysql14',
 					db='DbMysql14',
-					harset='utf8mb4',
 					cursorclass=pymysql.cursors.DictCursor)
 	return connection.cursor()
 
@@ -73,22 +73,55 @@ def apiSuggestion(request):
 
 def cursorToJSON(cursor):
 	result = json.dumps(cursor.fetchall(), indent=4, default=handler)
-	print(result)
-	return result
+	return jsonApi(200, result)
 
 def handler(o):
 	if isinstance(o, (datetime.timedelta)):
 		return str(o)
 
-def apiRecipeByNumOfIngredients(request):
+def apiSearchRecipes(request):
 	if not request.is_ajax():
 		return jsonApi(300, "Invalid call")
-	num = request.GET['num']
+	if (request.GET['recipe_name'] != ''):
+		return apiRecipeByDishName(request)
+	# if (request.GET['ingredients_max'] != ''):   # TODO: UNCOMMENT AFTER UI IMPLEMENTATION
+	# 	return apiRecipeByNumOfIngredients(request)
+	if (request.GET['prep_to'] != '180'):
+		return apiRecipeByMaxPrepTime(request)
+	if (request.GET['diet'] != 'any'):
+		return apiRecipeByDiet(request)
+	# if ('num_recipes' in request.GET and 'time' in request.GET): # TODO: CHANGE PARAMETER ACCORDING UI
+	# 	return apiMealByNumRecipiesAndTotalTime(request)
+	# if ('ingredient_list' in request.GET): # TODO: CHANGE PARAMETER ACCORDING UI
+	# 	return apiRecipeByIngredientList(request)
+	if ('selected_recipes' in request.GET):
+		return apiIngredientsListByRecipiesList(request)
+
+# Example for request:
+# recipe_name=Hot+Apple+Pie&
+# diet=any&
+# prep_from=0&
+# prep_to=180&
+# ingredients_inc=&
+# ingredients_exc=&
+# sort_by=sort_by_name&
+# sort_order=desc&
+# page=0
+
+# TODO: uncomment after UI implementation
+# def apiIngredients(request):
+# 	if not request.is_ajax():
+# 		return jsonApi(300, "Invalid call")
+# 	if ('selected_recipes' in request.GET):
+# 		return apiIngredientsListByRecipiesList(request)
+
+def apiRecipeByNumOfIngredients(request):
+	num = request.GET['ingredients_max'].replace('+',' ') # 1 - To be implemented on UI
 	cursor = getCursor()
 	command = ("""
-	SELECT rec_name, rec_ing_num, Url, Image
+	SELECT rec_id AS id, rec_name AS name, Prep_Time AS prep_time, Calories AS calories, Url AS url, Image AS image
 	FROM(
-	SELECT rec_name, rec_ing_num, recipe.Id AS rec_id, recipe.Url, recipe.Image
+	SELECT rec_name, rec_ing_num, recipe.Id AS rec_id, recipe.Url, recipe.Image, recipe.Prep_Time, recipe.Calories
 	FROM(
 	SELECT rec_name, count(*) as rec_ing_num
 	FROM(
@@ -109,26 +142,22 @@ def apiRecipeByNumOfIngredients(request):
 	cursor.execute(command)
 	return cursorToJSON(cursor)
 
-def apiRecipeByMaxPrepTime(request):
-	if not request.is_ajax():
-		return jsonApi(300, "Invalid call")
-	time = request.GET['time']
+def apiRecipeByMaxPrepTime(request): # 2
+	time = request.GET['prep_to'].replace('+',' ')
 	cursor = getCursor()
 	cursor.execute(("""
-		SELECT rec.Name AS Recipe_Name, rec.Prep_Time AS Prep_Time, rec.Url, rec.Image
+		SELECT rec.Id AS id, rec.Name AS name, rec.Prep_Time AS prep_time, rec.Calories AS calories, rec.Url AS url, rec.Image AS image
 		FROM Recipe AS rec
 		WHERE TIME(rec.Prep_Time) <= '{0}'
 		LIMIT {1}
 	""").format(time, GLOBAL_RESULTS_LIMIT))
 	return cursorToJSON(cursor)
 
-def apiRecipeByDiet(request):
-	if not request.is_ajax():
-		return jsonApi(300, "Invalid call")
-	diet = request.GET['diet']
+def apiRecipeByDiet(request): # 3
+	diet = request.GET['diet'].replace('+',' ')
 	cursor = getCursor()
 	cursor.execute(("""
-		SELECT diet.Name AS Diet_Name, rec.Name AS Recipe_Name, rec.Url, rec.Image
+		SELECT rec.Id AS id, rec.Name AS name, rec.Prep_Time AS  rec.Url AS url, rec.Image AS image
 		rec.Calories, rec.Url, rec.Image
 		FROM Recipe AS rec
 		JOIN Recipe_Diet AS rec_diet
@@ -140,13 +169,13 @@ def apiRecipeByDiet(request):
 	""").format(diet, GLOBAL_RESULTS_LIMIT))
 	return cursorToJSON(cursor)
 
-def apiRecipeByCategory(request):
+def apiRecipeByCategory(request): # TODO: Currently not in use
 	if not request.is_ajax():
 		return jsonApi(300, "Invalid call")
 	category = request.GET['category']
 	cursor = getCursor()
 	cursor.execute(("""
-		SELECT y.Category_Name, recipe.Name AS Recipe_Name, recipe.Url, recipe.Image
+		SELECT recipe.Name AS name, recipe.Url AS url, recipe.Image AS image
 		FROM Recipe_Ingredient AS rec_ing
 		JOIN(
 		SELECT Category_Id, Id
@@ -166,23 +195,35 @@ def apiRecipeByCategory(request):
 	""").format(category, GLOBAL_RESULTS_LIMIT))
 	return cursorToJSON(cursor)
 
-def apiRecipeByDishName(request):
-	if not request.is_ajax():
-		return jsonApi(300, "Invalid call")
-	name = request.GET['name']
+def apiRecipeByDishName(request): # 4
+	name = request.GET['recipe_name'].replace('+',' ')
 	cursor = getCursor()
 	cursor.execute(("""
-		SELECT rec.Name AS Recipe_Name,
-		rec.Url, rec.Image
+		SELECT rec.Id AS id, rec.Name AS name, rec.Prep_Time AS prep_time, rec.Calories AS calories, rec.Url AS url, rec.Image AS image
 		FROM Recipe AS rec
 		WHERE rec.Name = '{0}'
 	""").format(name))
 	return cursorToJSON(cursor)
 
+def apiIngredientsListByRecipiesList(request): # 5
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	recipesList = request.GET['selected_recipes'].replace("recipe_n_", "").split("+")
+	recipesList += ["" for x in range(5-len(recipesList))]
+	cursor = getCursor()
+	cursor.execute(("""
+	SELECT DISTINCT Ingredient.Name AS name
+	FROM Ingredient, Recipe, Recipe_Ingredient
+	WHERE Recipe.Id = Recipe_Ingredient.Recipe_Id
+	and Ingredient.Id = Recipe_Ingredient.Ingredient_Id
+	and (Recipe.Id = {0} OR Recipe.Id = {1} OR Recipe.Id = {2} OR Recipe.Id = {3} OR Recipe.Id = {4})
+	""").format(recipesList[0], recipesList[1], recipesList[2], recipesList[3], recipesList[4]))
+	return cursorToJSON(cursor)
+
 def apiMealByNumRecipiesAndTotalTime(request):
 	if not request.is_ajax():
 		return jsonApi(300, "Invalid call")
-	numRecipies = request.GET['numRecipies']
+	numRecipies = request.GET['num_recipes'] # TODO: CHANGE PARAMETER ACCORDING UI
 	time = request.GET['time']
 	if (numRecipies == 1):
 		return apiOneMealByTotalTime(time)
@@ -342,7 +383,7 @@ def apiFiveMealsByTotalTime(time):
 def apiRecipeByIngredientList(request):
 	if not request.is_ajax():
 		return jsonApi(300, "Invalid call")
-	list = request.GET['list']
+	list = request.GET['ingredient_list'] # TODO: CHANGE PARAMETER ACCORDING UI
 	if(len(list) == 1):
 		return apiRecipeByOneIngredient(list)
 	if(len(list) == 2):
@@ -679,16 +720,16 @@ def apiRecipesSuggestion(request):
 		]}
 	return jsonApi(200, data)
 
-def apiSearchRecipes(request):
-	if not request.is_ajax():
-		return jsonApi(300, "Invalid call")
-	data = {"results": 45321,
-		"items": [
-			{"id": 1, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
-			{"id": 2, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"},
-			{"id": 3, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
-			{"id": 4, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"},
-			{"id": 5, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
-			{"id": 6, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"}
-		]}
-	return jsonApi(200, data)
+# def apiSearchRecipes(request):
+# 	if not request.is_ajax():
+# 		return jsonApi(300, "Invalid call")
+# 	data = {"results": 45321,
+# 		"items": [
+# 			{"id": 1, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
+# 			{"id": 2, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"},
+# 			{"id": 3, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
+# 			{"id": 4, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"},
+# 			{"id": 5, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
+# 			{"id": 6, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"}
+# 		]}
+# 	return jsonApi(200, data)
