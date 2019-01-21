@@ -34,18 +34,19 @@ GLOBAL_CALC_RESULTS_LIMITS = 10000
 # 21) def apiRecipeByFiveIngredients(list):						####
 ####################################################################
 def getCursor():
-	# connection = pymysql.connect(host='localhost',
-	# 				port=3305,
+	connection = pymysql.connect(host='localhost',
+					port=3305,
+					user='DbMysql14',
+					password='DbMysql14',
+					db='DbMysql14',
+					charset='utf8mb4',
+					cursorclass=pymysql.cursors.DictCursor)
+	# connection = pymysql.connect(host='delta-tomcat-vm.cs.tau.ac.il',
+	# 				port=40777,
 	# 				user='DbMysql14',
 	# 				password='DbMysql14',
 	# 				db='DbMysql14',
 	# 				cursorclass=pymysql.cursors.DictCursor)
-	connection = pymysql.connect(host='delta-tomcat-vm.cs.tau.ac.il',
-					port=40777,
-					user='DbMysql14',
-					password='DbMysql14',
-					db='DbMysql14',
-					cursorclass=pymysql.cursors.DictCursor)
 	return connection.cursor()
 
 def apiShowTables():
@@ -81,7 +82,7 @@ def cursorToJSON(cursor):
 	result = json.dumps(cursor.fetchall(), indent=4, default=handler)
 	data = {"results": len(result),
 		"items": [result]}
-	print(data)
+	print("data:",data)
 	return jsonApi(200, data)
 
 def handler(o):
@@ -89,6 +90,7 @@ def handler(o):
 		return str(o)
 
 def apiSearchRecipes(request):
+	print("--- request: ", request.GET)
 	if not request.is_ajax():
 		return jsonApi(300, "Invalid call")
 	if (request.GET['recipe_name'] != ''):
@@ -221,6 +223,7 @@ def apiRecipeByCategory(request): # TODO: Currently not in use
 	return cursorToJSON(cursor)
 
 def apiRecipeByDishName(request): # 4
+	print("--- IN RECIPE BY DISH NAME ---")
 	name = request.GET['recipe_name'].replace('+',' ')
 	cursor = getCursor()
 	cursor.execute(("""
@@ -713,6 +716,7 @@ def apiIngredientsSuggestion(request):
 			{"name": "Lemon"},
 			{"name": "Milk"}
 		]}
+	print("data:\n",data)
 	return jsonApi(200, data)
 
 def apiIngredients(request):
@@ -736,25 +740,15 @@ def apiIngredients(request):
 	return jsonApi(200, data)
 
 def apiRecipesSuggestion(request):
-	if not request.is_ajax():
-		return jsonApi(300, "Invalid call")
-	data = {"suggestions": [
-			{"name": "Hot Apple Pie",			"calories": "289"},
-			{"name": "Sparkling Apple Cocktail recioes",	"calories": "609"},
-			{"name": "Apple-Lemon-Ginger Juice",		"calories": "254"}
-		]}
+	q = request.GET['q']
+	print("q = ", q)
+	cursor = getCursor()
+	cursor.execute(("""
+	Select rec.Name AS name, rec.Calories AS calories
+	From Recipe AS rec
+	Where rec.Name like '{0}%'
+	""").format(q))
+	result = json.dumps(cursor.fetchall(), default=handler)
+	data = {"suggestions": result}
+	print("data:\n",data)
 	return jsonApi(200, data)
-
-#def apiSearchRecipes(request):
-#	if not request.is_ajax():
-#		return jsonApi(300, "Invalid call")
-#	data = {"results": 45321,
-#		"items": [
-#			{"id": 1, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
-#			{"id": 2, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"},
-#			{"id": 3, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
-#			{"id": 4, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"},
-#			{"id": 5, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
-#			{"id": 6, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"}
-#		]}
-#	return jsonApi(200, data)
