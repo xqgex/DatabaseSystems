@@ -8,7 +8,6 @@ urlpatterns = [
 	url(r"^get_ingredients/", apiIngredients, name="api_get_ingredients"),
 	url(r"^get_recipes_suggestion/", apiRecipesSuggestion, name="api_get_recipes_suggestion"),
 	url(r"^search_recipes/", apiSearchRecipes, name="api_search_recipes"),
-
 	url(r"^get_RecipeByNumOfIngredients/", apiGetDiets, name="apiRecipeByNumOfIngredients"),
 	url(r"^get_RecipeByMaxPrepTime/", apiIngredientsSuggestion, name="apiRecipeByMaxPrepTime"),
 	url(r"^get_RecipeByDiet/", apiIngredients, name="apiRecipeByDiet"),
