@@ -73,8 +73,8 @@ def apiSuggestion(request):
 
 def cursorToJSON(cursor):
 	result = json.dumps(cursor.fetchall(), indent=4, default=handler)
-   print(result)
-   return result
+	print(result)
+	return result
 
 def handler(o):
 	if isinstance(o, (datetime.timedelta)):
