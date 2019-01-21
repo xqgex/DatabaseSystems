@@ -16,7 +16,7 @@
 	<link rel="stylesheet" href="{% static 'css/jquery-ui.min.css' %}">
 	<link rel="stylesheet" href="{% static 'css/jquery-ui.structure.min.css' %}">
 	<link rel="stylesheet" href="{% static 'css/jquery-ui.theme.min.css' %}">
-	<link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.6.3/css/all.css" integrity="sha384-UHRtZLI+pbxtHCWp1t77Bi1L4ZtiqrqD80Kn4Z8NTSRyMA2Fd33n5dQ8lWUE00s/" crossorigin="anonymous">
+	<link rel="stylesheet" href="{% static 'css/fontawesome.v5.6.3.css' %}">
 	<style>
 		#section1.load-background{
 			background:url({% static 'images/bg1.jpg' %}) no-repeat center center;
@@ -101,6 +101,9 @@
 					// Lazy load bg
 					var destinationSection = $(".section").eq(nextIndex-1);
 					destinationSection.addClass("load-background");
+					if (nextIndex == 4) {
+						getIngredients();
+					}
 				},
 				afterResponsive: function(isResponsive) { }
 			});
@@ -419,6 +422,28 @@
 					}
 				});
 			}
+			function getIngredients() {
+				if (selected_recipes.size == 0) {
+					
+				} else {
+					$.ajax({
+						url: "/api/get_ingredients/",
+						dataType: "json",
+						data:  {selected_recipes: selected_recipes.join("+")},
+						success: function(data) {
+							if (data.status == 200) {
+								for (var i = 0; i < data.message.categories.length; ++i) {
+									//data.message.categories[i].name
+									//data.message.categories[i].desc
+									for (var j = 0; j < data.message.categories[i].list.length; ++j) {
+										//data.message.categories[i].list[j]
+									}
+								}
+							}
+						}
+					});
+				}
+			}
 		});
 	</script>
 </head>
@@ -584,6 +609,48 @@
 			<div class="box fp-auto-height-responsive">
 				<h2>Last Step! </h2>
 				 Here you can get a shopping list for your chosen recipes.
+				<div class="filter_chip_container" id="selected_sum">The required ingredients are:</div>
+				<div class="filter_chip_container">
+					<div class="filter_row" id="">Sweets&nbsp;<span id="" class="small_text">Sweet products, Candies and Sugar</span></div>
+				</div>
+				<div class="filter_chip_container">
+					<div class="filter_row" id="">
+						<ul>
+							<li>Sweet Ingredients #1</li>
+							<li>Sweet Ingredients #2</li>
+							<li>Sweet Ingredients #3</li>
+							<li>Sweet Ingredients #4</li>
+						</ul>
+					</div>
+				</div>
+				<div class="filter_chip_container">
+					<div class="filter_row" id="">Vegetable&nbsp;<span id="" class="small_text">Vegetable and Greens</span></div>
+				</div>
+				<div class="filter_chip_container">
+					<div class="filter_row" id="">
+						<ul>
+							<li>Vegetable Ingredients #1</li>
+							<li>Vegetable Ingredients #2</li>
+							<li>Vegetable Ingredients #3</li>
+							<li>Vegetable Ingredients #4</li>
+						</ul>
+					</div>
+				</div>
+
+<!--{-->
+<!--	"name": "Sweets",-->
+<!--	"desc": "Sweet products, Candies and Sugar",-->
+<!--	"list": ["Sweet Ingredients #1", "Sweet Ingredients #2", "Sweet Ingredients #3"]-->
+<!--}, {-->
+<!--	"name": "Vegetable",-->
+<!--	"desc": "Vegetable and Greens",-->
+<!--	"list": ["Vegetable Ingredients #1", "Vegetable Ingredients #2", "Vegetable Ingredients #3", "Vegetable Ingredients #4"]-->
+<!--}, {-->
+<!--	"name": "Cooking  & Baking",-->
+<!--	"desc": "Cooking and Baking products - oils, flours…",-->
+<!--	"list": ["Cooking Ingredients #1", "Cooking Ingredients #2"]-->
+<!--}-->
+
 			</div>
 		</div>
 	</div>

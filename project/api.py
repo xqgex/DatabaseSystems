@@ -20,6 +20,26 @@ def apiIngredientsSuggestion(request):
 		]}
 	return jsonApi(200, data)
 
+def apiIngredients(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	data = {"categories": [
+			{
+				"name": "Sweets",
+				"desc": "Sweet products, Candies and Sugar",
+				"list": ["Sweet Ingredients #1", "Sweet Ingredients #2", "Sweet Ingredients #3"]
+			}, {
+				"name": "Vegetable",
+				"desc": "Vegetable and Greens",
+				"list": ["Vegetable Ingredients #1", "Vegetable Ingredients #2", "Vegetable Ingredients #3", "Vegetable Ingredients #4"]
+			}, {
+				"name": "Cooking  & Baking",
+				"desc": "Cooking and Baking products - oils, flours…",
+				"list": ["Cooking Ingredients #1", "Cooking Ingredients #2"]
+			}
+		]}
+	return jsonApi(200, data)
+
 def apiRecipesSuggestion(request):
 	if not request.is_ajax():
 		return jsonApi(300, "Invalid call")
