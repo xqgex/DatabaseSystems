@@ -715,6 +715,31 @@ def apiRecipesSuggestion(request):
 	data = {"suggestions": rv}
 	return jsonApi(200, data)
 
+def apiSearchMeals(request):
+	if (request.method != "GET") or (not request.is_ajax()):
+		return jsonApi(300, "Invalid call")
+	data = {"results": 4,
+		"meals": [[
+				{"id": 1, "name": "Balsamic-Glazed Steak Rolls"},
+				{"id": 2, "name": "Mongolian Glazed Steak"},
+				{"id": 3, "name": "Recipe name number 3"},
+				{"id": 4, "name": "Recipe name number 4"}
+			],[
+				{"id": 5, "name": "Recipe name number 5"},
+				{"id": 3, "name": "Recipe name number 3"}
+			],[
+				{"id": 5, "name": "Recipe name number 5"},
+				{"id": 2, "name": "Mongolian Glazed Steak"}
+			],[
+				{"id": 3, "name": "Recipe name number 3"},
+				{"id": 4, "name": "Recipe name number 4"},
+				{"id": 5, "name": "Recipe name number 5"},
+				{"id": 6, "name": "Recipe name number 6"},
+				{"id": 7, "name": "Recipe name number 7"}
+			]
+		]}
+	return jsonApi(200, data)
+
 def apiSearchRecipes(request):
 	if (request.method != "GET") or (not request.is_ajax()):
 		return jsonApi(300, "Invalid call")
@@ -734,6 +759,3 @@ def apiSearchRecipes(request):
 		return apiIngredientsListByRecipiesList(request)
 	else:
 		return apiDefaultResponse(request)
-
-def apiSearchMeals(request):
-	return apiSearchRecipes(request)
