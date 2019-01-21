@@ -171,24 +171,49 @@
 				}
 			});
 			$("#selected_sum").on("click", "#clear_selected", function(e) {
-				for (var it = selected_recipes.values(), val=null; val=it.next().value;) {
-					if($("#" + val).length != 0) {
-						$("#" + val).find("i").removeClass("fas").removeClass("marked").addClass("far").addClass("unmarked");
+				$("#recipes-list .each_recipe_parent").each(function() {
+					var items_to_mark = new Set();
+					if (search_mode == "Meals") {
+						items_to_mark = new Set($(this)[0].id.split("+"));
+					} else if (search_mode == "Recipes") {
+						items_to_mark.add($(this)[0].id);
+					} else {
+						return false;
 					}
-					selected_recipes.delete(val);
-				}
+					for (var it = items_to_mark.values(), val=null; val=it.next().value;) {
+						selected_recipes.delete(val);
+					}
+					$(this).find("i").removeClass("fas").removeClass("marked").addClass("far").addClass("unmarked");
+				});
 				$("#selected_sum").html("&nbsp;");
 			});
 			$("#recipes-list").on("click", ".add_recipe", function(e) {
 				var pressed_id = $(this).parent().parent()[0].id;
+				var items_to_mark = new Set();
+				if (search_mode == "Meals") {
+					items_to_mark = new Set(pressed_id.split("+"));
+				} else if (search_mode == "Recipes") {
+					items_to_mark.add(pressed_id);
+				} else {
+					return false;
+				}
 				if ($(this).find("i").hasClass("unmarked")) {
-					if (selected_recipes.size < 5) {
+					for (var it = items_to_mark.values(), val=null; val=it.next().value;) {
+						if (selected_recipes.has(val)) {
+							items_to_mark.delete(val);
+						}
+					}
+					if (selected_recipes.size + items_to_mark.size <= 5) {
 						$(this).find("i").removeClass("far").removeClass("unmarked").addClass("fas").addClass("marked");
-						selected_recipes.add(pressed_id);
+						for (var it = items_to_mark.values(), val=null; val=it.next().value;) {
+							selected_recipes.add(val);
+						}
 					}
 				} else {
 					$(this).find("i").removeClass("fas").removeClass("marked").addClass("far").addClass("unmarked");
-					selected_recipes.delete(pressed_id);
+					for (var it = items_to_mark.values(), val=null; val=it.next().value;) {
+						selected_recipes.delete(val);
+					}
 				}
 				if (selected_recipes.size == 0) {
 					$("#selected_sum").html("&nbsp;");
@@ -408,14 +433,37 @@
 						paginationVisability();
 					}
 				} else {
+					var loop_all_ids = new Set();
 					var loop_add_class;
+					var loop_append_text;
+					var mark_as_checked;
 					for (var i = 0; i < data.message.meals.length; ++i) {
-						/*if (selected_recipes.has("recipe_n_" + data.message.meals[i].id)) {
+						loop_all_ids.clear();
+						loop_append_text = "";
+						mark_as_checked = true;
+						for (var j = 0; j < data.message.meals[i].length; ++j) {
+							loop_all_ids.add("recipe_n_" + data.message.meals[i][j].id);
+							if (!selected_recipes.has("recipe_n_" + data.message.meals[i][j].id)) {
+								mark_as_checked = false;
+							}
+							loop_append_text += "\n\
+								<div class=\"recipe-title\">" + data.message.meals[i][j].name + "</div>";
+						}
+						if (mark_as_checked) {
 							loop_add_class = "fas fa-check-circle marked";
 						} else {
 							loop_add_class = "far fa-check-circle unmarked";
-						}*/
-						$("#recipes-list").append(data.message.meals[i] + "<br>"); // TODO TODO TODO
+						}
+						$("#recipes-list").append("\n\
+				<div class=\"each_recipe_parent\" id=\"" + [...loop_all_ids].join("+") + "\">\n\
+					<div class=\"each_recipe\">\n\
+						<div class=\"recipe\" style=\"background-color: rgba(0,0,0,.2);\">\n\
+							<div class=\"recipe-info\">" + loop_append_text + "\n\
+							</div>\n\
+						</div>\n\
+						<div class=\"add_recipe\" title=\"Add Recipe\"><i class=\"" + loop_add_class + "\"></i></div>\n\
+					</div>\n\
+				</div>");
 					}
 					var upto;
 					if ((page_number+1)*6 < search_results_count) {
@@ -623,7 +671,7 @@
 				</ul><br/>
 				We know that sometimes you need to make <strong>more than a single dish</strong>..<br/>
 				This might be <strong>tricky</strong> with a limited time frame, or ingredients.<br/>
-				That is why we also offer a query which finds for you <strong>up to 5 recipes</strong> you could prepare in a <strong>predefined time frame</strong>!<br/>
+				That is why <a href="#SearchMeal">we also offer a query</a> which finds for you <strong>up to 5 recipes</strong> you could prepare in a <strong>predefined time frame</strong>!<br/>
 				You could also narrow that search by defining Ingredient as before.<br/>
 				<br/>
 				Let's say you want to prepare 3 dishes in 2 hours :)<br/>
