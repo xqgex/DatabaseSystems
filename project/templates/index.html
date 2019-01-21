@@ -25,6 +25,9 @@
 			background:url({% static 'images/bg2.jpg' %}) no-repeat center center;
 		}
 		#section3.load-background{
+			background:url({% static 'images/bg2.jpg' %}) no-repeat center center;
+		}
+		#section4.load-background{
 			background:url({% static 'images/bg3.jpg' %}) no-repeat center center;
 		}
 	</style>
@@ -33,13 +36,14 @@
 	<script type="text/javascript" src="{% static 'js/jquery.fullPage.js' %}"></script>
 	<script type="text/javascript">
 		$(document).ready(function() {
-			var pagesTitle = ["Home Page", ">What Can You Do?", "Recipes Search", "Required Ingredients"];
+			var pagesTitle = ["Home Page", ">What Can You Do?", "Search Meals", "Search Recipes", "Required Ingredients"];
 			var diet_not_loaded = true;
 			var md_cover = false;
 			var user_filter_text = false;
 			var sort_by = "sort_by_name";
 			var page_number = 0;
 			var search_results_count = 0;
+			var search_mode = "";
 			var selected_recipes = new Set();
 			var filter_mapping_dict = {
 				"search_filter": "#md-panel-search",
@@ -52,45 +56,35 @@
 				verticalCentered: false,
 				css3: false,
 				menu: "#menu",
-				anchors: ["Home", "WhatCanYouDo", "Recipes", "Ingredients"],
-				sectionsColor: ["#F0F2F4", "#fff", "#fff", "#fff"],
+				anchors: ["Home", "WhatCanYouDo", "SearchMeal", "SearchRecipe", "Ingredients"],
+				sectionsColor: ["#F0F2F4", "#fff", "#fff", "#fff", "#fff"],
 				navigation: true,
 				navigationPosition: "right",
 				navigationTooltips: pagesTitle,
 				responsiveWidth: 900,
-				afterLoad: function(anchorLink, index) {
-					if (index == 3 && diet_not_loaded) {
-						$.ajax({
-							url: "/api/get_diets/",
-							dataType: "json",
-							success: function(data) {
-								if (data.status == 200) {
-									var diets = $("#md-container-diets");
-									var prep_from = $("#PrepFrom");
-									diets.empty();
-									prep_from.empty();
-									diets.append("<div class=\"filter_menu_item keyingredient_selected\" value=\"any\" style=\"cursor: pointer\">any&nbsp;<span class=\"small_text\">-  Any diet</span></div>");
-									$("#selected_diet").text("any");
-									for (var i = 0; i < data.message.list.length; ++i) {
-										diets.append("<div class=\"filter_menu_item\" value=\"" + data.message.list[i].name + "\" style=\"cursor: pointer\">" + data.message.list[i].name + "&nbsp;<span class=\"small_text\">-  " + data.message.list[i].desc + "</span></div>");
-									}
-									prep_from.append("<option id=\"0\" value=\"0\">Any duration</option>");
-									for (var i = 1; i < 18; ++i) {
-										prep_from.append("<option id=\"" + i*10 + "\" value=\"" + i*10 + "\">" + int2duration(i*10) + "</option>");
-									}
-									prep_from.append("<option id=\"180\" value=\"180\">More then 3 hours</option>");
-									$("#md-panel-search .md-panel").css("left", ($("#search_filter").position().left+390) + "px");
-									$("#md-panel-diet .md-panel").css("left", ($("#diet_filter").position().left+390) + "px");
-									$("#md-panel-prep .md-panel").css("left", ($("#prep_time_filter").position().left+390) + "px");
-									diet_not_loaded = false;
-									prep_from.change();
-									getRecipes();
-								}
-							}
-						});
-
+				afterLoad: function(origin, destination, direction) {
+					if (destination == 3) {
+						if (diet_not_loaded && loadDiets()) {
+							diet_not_loaded = false;
+						}
+						if (search_mode != "Meals") {
+							ClearRecipes();
+							getMeals();
+							search_mode == "Meals";
+						}
+						$("#search_main_container").detach().appendTo("#section2");
+					} else if (destination == 4) {
+						if (diet_not_loaded && loadDiets()) {
+							diet_not_loaded = false;
+						}
+						if (search_mode != "Recipes") {
+							ClearMeals();
+							getRecipes();
+							search_mode == "Recipes";
+						}
+						$("#search_main_container").detach().appendTo("#section3");
 					}
-					document.title = pagesTitle[index-1];
+					document.title = pagesTitle[destination-1];
 				},
 				onLeave: function(index, nextIndex, direction) {
 					if (index == 2 && direction == "down") {
@@ -101,11 +95,11 @@
 					// Lazy load bg
 					var destinationSection = $(".section").eq(nextIndex-1);
 					destinationSection.addClass("load-background");
-					if (nextIndex == 4) {
+					if (nextIndex == 5) {
 						getIngredients();
 					}
 				},
-				afterResponsive: function(isResponsive) { }
+				afterResponsive: function(isResponsive) {}
 			});
 			$("#moveToHome").click(function(e) {
 				e.preventDefault();
@@ -123,6 +117,10 @@
 				e.preventDefault();
 				$.fn.fullpage.moveTo(4);
 			});
+			$("#moveToPage5").click(function(e) {
+				e.preventDefault();
+				$.fn.fullpage.moveTo(5);
+			});
 			$(".sort_button").click(function(e) {
 				$(".sort_button").removeClass("sort_selected");
 				$(this).addClass("sort_selected");
@@ -136,7 +134,11 @@
 				} else {
 					$(this).find("i").removeClass("fa-chevron-circle-up").addClass("fa-chevron-circle-down");
 				}
-				getRecipes();
+				if (search_mode == "Meals") {
+					getMeals();
+				} else if (search_mode == "Recipes") {
+					getRecipes();
+				}
 			});
 			$("#md-cover").click(function(e) {
 				$(".md-panel-outer-wrapper").removeClass("_md-panel-shown").addClass("_md-panel-hidden");
@@ -145,7 +147,11 @@
 			$(".md-ok").click(function(e) {
 				$(".md-panel-outer-wrapper").removeClass("_md-panel-shown").addClass("_md-panel-hidden");
 				md_cover = false;
-				getRecipes();
+				if (search_mode == "Meals") {
+					getMeals();
+				} else if (search_mode == "Recipes") {
+					getRecipes();
+				}
 			});
 			$(".filter_option").click(function(e) {
 				if (md_cover == true) {
@@ -158,7 +164,11 @@
 			$("#page_prev").click(function(e) {
 				if (0 < page_number) {
 					page_number -= 1;
-					getRecipes();
+					if (search_mode == "Meals") {
+						getMeals();
+					} else if (search_mode == "Recipes") {
+						getRecipes();
+					}
 				} else {
 					paginationVisability();
 				}
@@ -166,7 +176,11 @@
 			$("#page_next").click(function(e) {
 				if (page_number <= Math.ceil(search_results_count/6)) {
 					page_number += 1;
-					getRecipes();
+					if (search_mode == "Meals") {
+						getMeals();
+					} else if (search_mode == "Recipes") {
+						getRecipes();
+					}
 				} else {
 					paginationVisability();
 				}
@@ -301,33 +315,92 @@
 			}
 			function paginationVisability() {
 				if (page_number == 0) {
-					if ($("#page_prev").hasClass("pagination_hidden") == false) {
-						$("#page_prev").addClass("pagination_hidden");
+					if ($("#page_prev").hasClass("hide_me") == false) {
+						$("#page_prev").addClass("hide_me");
 					}
 					if (search_results_count <= 6) {
-						if ($("#page_next").hasClass("pagination_hidden") == false) {
-							$("#page_next").addClass("pagination_hidden");
+						if ($("#page_next").hasClass("hide_me") == false) {
+							$("#page_next").addClass("hide_me");
 						}
 					} else {
-						if ($("#page_next").hasClass("pagination_hidden")) {
-							$("#page_next").removeClass("pagination_hidden");
+						if ($("#page_next").hasClass("hide_me")) {
+							$("#page_next").removeClass("hide_me");
 						}
 					}
 				} else if (page_number+1 == Math.ceil(search_results_count/6)) {
-					if ($("#page_prev").hasClass("pagination_hidden")) {
-						$("#page_prev").removeClass("pagination_hidden");
+					if ($("#page_prev").hasClass("hide_me")) {
+						$("#page_prev").removeClass("hide_me");
 					}
-					if ($("#page_next").hasClass("pagination_hidden") == false) {
-						$("#page_next").addClass("pagination_hidden");
+					if ($("#page_next").hasClass("hide_me") == false) {
+						$("#page_next").addClass("hide_me");
 					}
 				} else {
-					if ($("#page_prev").hasClass("pagination_hidden")) {
-						$("#page_prev").removeClass("pagination_hidden");
+					if ($("#page_prev").hasClass("hide_me")) {
+						$("#page_prev").removeClass("hide_me");
 					}
-					if ($("#page_next").hasClass("pagination_hidden")) {
-						$("#page_next").removeClass("pagination_hidden");
+					if ($("#page_next").hasClass("hide_me")) {
+						$("#page_next").removeClass("hide_me");
 					}
 				}
+			}
+			function loadDiets() {
+				$.ajax({
+					url: "/api/get_diets/",
+					dataType: "json",
+					success: function(data) {
+						if (data.status == 200) {
+							var diets = $("#md-container-diets");
+							var prep_from = $("#PrepFrom");
+							diets.empty();
+							prep_from.empty();
+							diets.append("<div class=\"filter_menu_item keyingredient_selected\" value=\"any\" style=\"cursor: pointer\">any&nbsp;<span class=\"small_text\">-  Any diet</span></div>");
+							$("#selected_diet").text("any");
+							for (var i = 0; i < data.message.list.length; ++i) {
+								diets.append("<div class=\"filter_menu_item\" value=\"" + data.message.list[i].name + "\" style=\"cursor: pointer\">" + data.message.list[i].name + "&nbsp;<span class=\"small_text\">-  " + data.message.list[i].desc + "</span></div>");
+							}
+							prep_from.append("<option id=\"0\" value=\"0\">Any duration</option>");
+							for (var i = 1; i < 18; ++i) {
+								prep_from.append("<option id=\"" + i*10 + "\" value=\"" + i*10 + "\">" + int2duration(i*10) + "</option>");
+							}
+							prep_from.append("<option id=\"180\" value=\"180\">More then 3 hours</option>");
+							$("#md-panel-search .md-panel").css("left", ($("#search_filter").position().left+390) + "px");
+							$("#md-panel-diet .md-panel").css("left", ($("#diet_filter").position().left+390) + "px");
+							$("#md-panel-prep .md-panel").css("left", ($("#prep_time_filter").position().left+390) + "px");
+							prep_from.change();
+							return true;
+						}
+					}
+				});
+				return false;
+			}
+			function ClearMeals() {
+				$("#recipes-list").empty();
+				if ($("#search_filter").hasClass("hide_me")) {
+					$("#search_filter").removeClass("hide_me");
+				}
+				if ($("#diet_filter").hasClass("hide_me")) {
+					$("#diet_filter").removeClass("hide_me");
+				}
+				page_number = 0;
+				search_results_count = 0;
+				$("#page_status").text("Showing results 0-0 out of 0");
+				paginationVisability();
+			}
+			function ClearRecipes() {
+				$("#recipes-list").empty();
+				if (!$("#search_filter").hasClass("hide_me")) {
+					$("#search_filter").addClass("hide_me");
+				}
+				if (!$("#diet_filter").hasClass("hide_me")) {
+					$("#diet_filter").addClass("hide_me");
+				}
+				page_number = 0;
+				search_results_count = 0;
+				$("#page_status").text("Showing results 0-0 out of 0");
+				paginationVisability();
+			}
+			function getMeals() {
+				// TODO TODO TODO
 			}
 			function getRecipes() {
 				var recipe_name = $("#apiGetRecipesSuggestion").val();
@@ -360,6 +433,7 @@
 						diet: diet,
 						prep_from: prep_from,
 						prep_to: prep_to,
+						ingredients_max: 0, // TODO TODO TODO
 						ingredients_inc: ingredients_inc.join("+"),
 						ingredients_exc: ingredients_exc.join("+"),
 						sort_by: sort_by,
@@ -433,7 +507,7 @@
 			}
 			function getIngredients() {
 				if (selected_recipes.size == 0) {
-					$("#ingredients_sum").html("Please <a href=\"#Recipes\">select at least one recipe</a> first.");
+					$("#ingredients_sum").html("Please <a href=\"#SearchRecipe\">select at least one recipe</a> first.");
 					$("#scrollable_ingredients").empty();
 				} else {
 					$.ajax({
@@ -478,8 +552,9 @@
 	<ul id="menu">
 		<li data-menuanchor="Home" class="active"><a id="moveToHome" href="#">Home Page</a></li>
 		<li data-menuanchor="WhatCanYouDo"><a id="moveToPage2" href="#">What Can You Do?</a></li>
-		<li data-menuanchor="Recipes"><a id="moveToPage3" href="#">Recipes Search</a></li>
-		<li data-menuanchor="Ingredients"><a id="moveToPage4" href="#">Required Ingredients</a></li>
+		<li data-menuanchor="SearchMeal"><a id="moveToPage3" href="#">Search Meals</a></li>
+		<li data-menuanchor="SearchRecipe"><a id="moveToPage4" href="#">Search Recipes</a></li>
+		<li data-menuanchor="Ingredients"><a id="moveToPage5" href="#">Required Ingredients</a></li>
 	</ul>
 </div>
 <div id="footer">The site was build as a the final project at Tel Aviv University Database Systems (Fall 2018/19) course (0368-3458).</div>
@@ -498,7 +573,7 @@
 		<div class="wrap">
 			<div class="box fp-auto-height-responsive">
 				<h2>What Can You Do?</h2>
-				FoodFinder allows you to <a href="#Recipes">search a recipe</a> by a variety of properties -
+				FoodFinder allows you to <a href="#SearchRecipe">search a recipe</a> by a variety of properties -
 				<ul>
 					<li>Preparation <strong>Time</strong></li>
 					<li>Ingredients you want to be <strong>included</strong></li>
@@ -515,8 +590,9 @@
 			</div>
 		</div>
 	</div>
-	<div class="section moveDown" id="section2">
-		<div class="wrap">
+	<div class="section moveDown" id="section2"></div>
+	<div class="section moveDown" id="section3">
+		<div class="wrap" id="search_main_container">
 			<div class="box fp-auto-height-responsive">
 				<h2>Let's start!</h2>
 				So, What do you want to cook today?
@@ -542,7 +618,7 @@
 						<div class="filter_menu_item sort_button" id="sort_by_prep">Preparation time&nbsp;<i class="fa"></i></div>
 						<div class="filter_menu_item sort_button" id="sort_by_cal">Calories&nbsp;<i class="fa"></i></div>
 						<div class="filter_menu_item" style="flex-grow: 1"></div>
-						<div class="filter_menu_item pagination_hidden" id="page_prev">Previous</div>
+						<div class="filter_menu_item hide_me" id="page_prev">Previous</div>
 						<div class="filter_menu_item" id="page_status">Showing results ?-? out of ?</div>
 						<div class="filter_menu_item" id="page_next">Next</div>
 					</div>
@@ -627,7 +703,7 @@
 			</div>
 		</div>
 	</div>
-	<div class="section" id="section3">
+	<div class="section" id="section4">
 		<div class="wrap">
 			<div class="box fp-auto-height-responsive">
 				<h2>Last Step! </h2>

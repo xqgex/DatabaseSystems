@@ -294,29 +294,29 @@ img{
 	margin:15px 0;
 	padding-left:40px;
 }
-/* Section 2 & Section 3
+/* Section 2 & Section 3 & Section 4
 * --------------------------------------- */
-#section2 .box{
+#section2 .box, #section3 .box{
 	text-align:center;
 	min-width:930px;
 	margin:10% 0 0 0;
 }
-#section2 h2, #section3 h2{
+#section2 h2, #section3 h2, #section4 h2{
 	display:inline;
 }
-#section2 .small_text, #section3 .small_text{
+#section2 .small_text, #section3 .small_text, #section4 .small_text{
 	font-size:10px;
 }
-#section3 .box{
+#section4 .box{
 	text-align:center;
 	min-width:930px;
 	margin:10% 0 0 0;
 	height:100%;
 }
-#section3 .wrap{
+#section4 .wrap{
 	height:70%;
 }
-#section3 .filter_row ul{
+#section4 .filter_row ul{
 	list-style:disc;
 	margin:15px 0;
 	padding-left:40px;
@@ -327,24 +327,6 @@ img{
 }
 #clear_selected{
 	cursor:pointer;
-}
-/*screen resolutions between 620px and 800px*/
-@media all and (min-width:620px) and (max-width:800px){
-	#section3 .imgsContainer{
-	margin-top:-278px;
-	margin-left:-685px;
-	width:647px;
-	height:563px;
-	}
-}
-/*screen resolutions lower than 620px*/
-@media all and (max-width:620px){
-	#section3 .imgsContainer{
-	margin-top:-208px;
-	margin-left:-516px;
-	width:534px;
-	height:464px;
-	}
 }
 /* Overwriting fullPage.js tooltip color
 * --------------------------------------- */
@@ -423,7 +405,7 @@ img{
 .filter_row #page_status{font-size:12px;padding:0 6px}
 .filter_row #page_prev,.filter_row #page_next{cursor:pointer;padding:0 6px}
 .filter_row .sort_selected{background-color:rgba(0, 0, 0, 0.2)}
-.filter_row .pagination_hidden{display:none}
+.filter_row .hide_me{display:none}
 .filter_option{padding:8px;opacity:.9;text-align:center;margin-top:5px;margin-right:12px;cursor:pointer}
 .filter_menu{background:#fff!important;border:1px solid rgba(0,0,0,.2)!important;border-radius:4px!important;box-shadow:0 14px 36px 2px rgba(0,0,0,.15)!important;overflow-y:auto!important;overflow-x:hidden!important;padding:0 5px;white-space:normal!important;display:inline-block!important;visibility:visible!important;height:300px}
 .filter_menu_item{align-items:center;display:flex;height:28px;padding:0 16px;font-size:18px;position:relative;transition:background .15s linear;width:auto;margin-bottom:5px}
