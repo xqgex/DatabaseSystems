@@ -171,6 +171,15 @@
 					paginationVisability();
 				}
 			});
+			$("#selected_sum").on("click", "#clear_selected", function(e) {
+				for (var it = selected_recipes.values(), val=null; val=it.next().value;) {
+					if($("#" + val).length != 0) {
+						$("#" + val).find("i").removeClass("fas").removeClass("marked").addClass("far").addClass("unmarked");
+					}
+					selected_recipes.delete(val);
+				}
+				$("#selected_sum").html("&nbsp;");
+			});
 			$("#recipes-list").on("click", ".add_recipe", function(e) {
 				var pressed_id = $(this).parent().parent()[0].id;
 				if ($(this).find("i").hasClass("unmarked")) {
@@ -185,7 +194,7 @@
 				if (selected_recipes.size == 0) {
 					$("#selected_sum").html("&nbsp;");
 				} else {
-					$("#selected_sum").html("You have selected " + selected_recipes.size + " out of maximum of 5 recipes, <a href=\"#Ingredients\">Continue</a>.");
+					$("#selected_sum").html("You have selected " + selected_recipes.size + " out of maximum of 5 recipes, <a href=\"#Ingredients\">Continue</a>, Or <a id=\"clear_selected\">clear selected</a>.");
 				}
 			});
 			$("#md-panel-diet").on("click", ".filter_menu_item", function(e) {
@@ -347,7 +356,7 @@
 				$.ajax({
 					url: "/api/search_recipes/",
 					dataType: "json",
-					data:  {recipe_name: recipe_name,
+					data: {recipe_name: recipe_name,
 						diet: diet,
 						prep_from: prep_from,
 						prep_to: prep_to,
@@ -392,21 +401,21 @@
 									} else {
 										loop_add_class = "far fa-check-circle unmarked";
 									}
-									$("#recipes-list").append("\
-							<div class=\"each_recipe_parent\" id=\"recipe_n_" + data.message.items[i].id + "\">\
-								<div class=\"each_recipe\">\
-									<a target=\"_blank\" href=\"" + data.message.items[i].url + "\">\
-										<div class=\"recipe\" style=\"background-image: url('" + data.message.items[i].image + "');\">\
-											<div class=\"recipe-info\">\
-												<div class=\"recipe-title\">" + data.message.items[i].name + "</div>\
-												<div class=\"recipe-info-footer\">\
-													<span>" + loop_prep_hours + loop_prep_minutes + ", " + parseInt(data.message.items[i].calories).toLocaleString() + " Calories</span>\
-												</div>\
-											</div>\
-										</div>\
-									</a>\
-									<div class=\"add_recipe\" title=\"Add Recipe\"><i class=\"" + loop_add_class + "\"></i></div>\
-								</div>\
+									$("#recipes-list").append("\n\
+							<div class=\"each_recipe_parent\" id=\"recipe_n_" + data.message.items[i].id + "\">\n\
+								<div class=\"each_recipe\">\n\
+									<a target=\"_blank\" href=\"" + data.message.items[i].url + "\">\n\
+										<div class=\"recipe\" style=\"background-image: url('" + data.message.items[i].image + "');\">\n\
+											<div class=\"recipe-info\">\n\
+												<div class=\"recipe-title\">" + data.message.items[i].name + "</div>\n\
+												<div class=\"recipe-info-footer\">\n\
+													<span>" + loop_prep_hours + loop_prep_minutes + ", " + parseInt(data.message.items[i].calories).toLocaleString() + " Calories</span>\n\
+												</div>\n\
+											</div>\n\
+										</div>\n\
+									</a>\n\
+									<div class=\"add_recipe\" title=\"Add Recipe\"><i class=\"" + loop_add_class + "\"></i></div>\n\
+								</div>\n\
 							</div>");
 								}
 								var upto;
@@ -424,20 +433,34 @@
 			}
 			function getIngredients() {
 				if (selected_recipes.size == 0) {
-					
+					$("#ingredients_sum").html("Please <a href=\"#Recipes\">select at least one recipe</a> first.");
+					$("#scrollable_ingredients").empty();
 				} else {
 					$.ajax({
 						url: "/api/get_ingredients/",
 						dataType: "json",
-						data:  {selected_recipes: selected_recipes.join("+")},
+						data: {selected_recipes: [...selected_recipes].join("+")},
 						success: function(data) {
 							if (data.status == 200) {
+								var loop_text;
+								$("#ingredients_sum").text("The required ingredients are:");
+								$("#scrollable_ingredients").empty();
 								for (var i = 0; i < data.message.categories.length; ++i) {
-									//data.message.categories[i].name
-									//data.message.categories[i].desc
+									loop_text = "\n\
+					<div class=\"filter_chip_container\">\n\
+						<div class=\"filter_row\">" + data.message.categories[i].name + "&nbsp;<span class=\"small_text\">" + data.message.categories[i].desc + "</span></div>\n\
+					</div>\n\
+					<div class=\"filter_chip_container\">\n\
+						<div class=\"filter_row\">\n\
+							<ul>";
 									for (var j = 0; j < data.message.categories[i].list.length; ++j) {
-										//data.message.categories[i].list[j]
+										loop_text += "\n\
+								<li>" + data.message.categories[i].list[j] + "</li>";
 									}
+									$("#scrollable_ingredients").append(loop_text + "\n\
+							</ul>\n\
+						</div>\n\
+					</div>");
 								}
 							}
 						}
@@ -609,48 +632,9 @@
 			<div class="box fp-auto-height-responsive">
 				<h2>Last Step! </h2>
 				 Here you can get a shopping list for your chosen recipes.
-				<div class="filter_chip_container" id="selected_sum">The required ingredients are:</div>
-				<div class="filter_chip_container">
-					<div class="filter_row" id="">Sweets&nbsp;<span id="" class="small_text">Sweet products, Candies and Sugar</span></div>
+				<div class="filter_chip_container" id="ingredients_sum">&nbsp;</div>
+				<div id="scrollable_ingredients">
 				</div>
-				<div class="filter_chip_container">
-					<div class="filter_row" id="">
-						<ul>
-							<li>Sweet Ingredients #1</li>
-							<li>Sweet Ingredients #2</li>
-							<li>Sweet Ingredients #3</li>
-							<li>Sweet Ingredients #4</li>
-						</ul>
-					</div>
-				</div>
-				<div class="filter_chip_container">
-					<div class="filter_row" id="">Vegetable&nbsp;<span id="" class="small_text">Vegetable and Greens</span></div>
-				</div>
-				<div class="filter_chip_container">
-					<div class="filter_row" id="">
-						<ul>
-							<li>Vegetable Ingredients #1</li>
-							<li>Vegetable Ingredients #2</li>
-							<li>Vegetable Ingredients #3</li>
-							<li>Vegetable Ingredients #4</li>
-						</ul>
-					</div>
-				</div>
-
-<!--{-->
-<!--	"name": "Sweets",-->
-<!--	"desc": "Sweet products, Candies and Sugar",-->
-<!--	"list": ["Sweet Ingredients #1", "Sweet Ingredients #2", "Sweet Ingredients #3"]-->
-<!--}, {-->
-<!--	"name": "Vegetable",-->
-<!--	"desc": "Vegetable and Greens",-->
-<!--	"list": ["Vegetable Ingredients #1", "Vegetable Ingredients #2", "Vegetable Ingredients #3", "Vegetable Ingredients #4"]-->
-<!--}, {-->
-<!--	"name": "Cooking  & Baking",-->
-<!--	"desc": "Cooking and Baking products - oils, flours…",-->
-<!--	"list": ["Cooking Ingredients #1", "Cooking Ingredients #2"]-->
-<!--}-->
-
 			</div>
 		</div>
 	</div>
