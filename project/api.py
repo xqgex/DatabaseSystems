@@ -78,10 +78,9 @@ def apiSuggestion(request):
 	return jsonApi(200, data)
 
 def cursorToJSON(cursor):
-	result = json.dumps(cursor.fetchall(), indent=4, default=handler)
+	result = cursor.fetchall()
 	data = {"results": len(result),
-		"items": [result]}
-	print("data:",data)
+		"items": result}	
 	return jsonApi(200, data)
 
 def handler(o):
@@ -703,36 +702,17 @@ def apiIngredients(request):
 def apiRecipesSuggestion(request):
 	if (request.method != "GET") or (not request.is_ajax()):
 		return jsonApi(300, "Invalid call")
-	data = {"suggestions": [
-			{"name": "Hot Apple Pie",			"calories": "289"},
-			{"name": "Sparkling Apple Cocktail recioes",	"calories": "609"},
-			{"name": "Apple-Lemon-Ginger Juice",		"calories": "254"}
-		]}
-	return jsonApi(200, data)
-
-def apiSearchMeals(request):
-	if (request.method != "GET") or (not request.is_ajax()):
-		return jsonApi(300, "Invalid call")
-	data = {"results": 4,
-		"meals": [[
-				{"id": 1, "name": "Balsamic-Glazed Steak Rolls"},
-				{"id": 2, "name": "Mongolian Glazed Steak"},
-				{"id": 3, "name": "Recipe name number 3"},
-				{"id": 4, "name": "Recipe name number 4"}
-			],[
-				{"id": 5, "name": "Recipe name number 5"},
-				{"id": 3, "name": "Recipe name number 3"}
-			],[
-				{"id": 5, "name": "Recipe name number 5"},
-				{"id": 2, "name": "Mongolian Glazed Steak"}
-			],[
-				{"id": 3, "name": "Recipe name number 3"},
-				{"id": 4, "name": "Recipe name number 4"},
-				{"id": 5, "name": "Recipe name number 5"},
-				{"id": 6, "name": "Recipe name number 6"},
-				{"id": 7, "name": "Recipe name number 7"}
-			]
-		]}
+	q = request.GET['q']
+	print("q = ", q)
+	cursor = getCursor()
+	cursor.execute(("""
+	Select rec.Name AS name, rec.Calories AS calories
+	From Recipe AS rec
+	Where rec.Name like '{0}%'
+	""").format(q))
+	rv = cursor.fetchall()
+	print("rv = ",rv)
+	data = {"suggestions": rv}
 	return jsonApi(200, data)
 
 def apiSearchRecipes(request):
@@ -755,16 +735,5 @@ def apiSearchRecipes(request):
 	else:
 		return apiDefaultResponse(request)
 
-#def apiSearchRecipes(request):
-#	if (request.method != "GET") or (not request.is_ajax()):
-#		return jsonApi(300, "Invalid call")
-#	data = {"results": 45321,
-#		"items": [
-#			{"id": 1, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
-#			{"id": 2, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"},
-#			{"id": 3, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
-#			{"id": 4, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"},
-#			{"id": 5, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
-#			{"id": 6, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"}
-#		]}
-#	return jsonApi(200, data)
+# def apiSearchMeals(request):
+#
