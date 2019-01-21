@@ -261,7 +261,6 @@ img{
 	overflow:hidden;
 	background-size:cover;
 }
-
 .box{
 	text-align:left;
 	font-size:1.2em;
@@ -299,13 +298,19 @@ img{
 * --------------------------------------- */
 #section2 .box, #section3 .box{
 	text-align:center;
+	min-width:930px;
 	margin:10% 0 0 0;
 }
-#section2 .small_text{
+#section2 .small_text, #section3 .small_text{
 	font-size:10px;
 }
 #section2 h2, #section3 h2{
 	display:inline;
+}
+#section3 .filter_row ul{
+	list-style:disc;
+	margin:15px 0;
+	padding-left:40px;
 }
 /*screen resolutions between 620px and 800px*/
 @media all and (min-width:620px) and (max-width:800px){
