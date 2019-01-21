@@ -398,7 +398,35 @@
 				$("#page_status").text("Showing results 0-0 out of 0");
 			}
 			function getMeals(data) {
-				// TODO TODO TODO
+				$("#recipes-list").empty();
+				search_results_count = parseInt(data.message.results);
+				if (Math.ceil(search_results_count/6) <= page_number) {
+					if (page_number != 0) {
+						page_number = 0;
+						searchFunction();
+					} else {
+						$("#page_status").text("Showing results 0-0 out of 0");
+						paginationVisability();
+					}
+				} else {
+					var loop_add_class;
+					for (var i = 0; i < data.message.meals.length; ++i) {
+						/*if (selected_recipes.has("recipe_n_" + data.message.meals[i].id)) {
+							loop_add_class = "fas fa-check-circle marked";
+						} else {
+							loop_add_class = "far fa-check-circle unmarked";
+						}*/
+						$("#recipes-list").append(data.message.meals[i] + "<br>"); // TODO TODO TODO
+					}
+					var upto;
+					if ((page_number+1)*6 < search_results_count) {
+						upto = (page_number+1)*6;
+					} else {
+						upto = search_results_count;
+					}
+					$("#page_status").text("Showing results " + ((page_number*6)+1).toLocaleString() + "-" + upto.toLocaleString() + " out of " + search_results_count.toLocaleString());
+					paginationVisability();
+				}
 			}
 			function getRecipes(data) {
 				var loop_prep_array;
@@ -488,7 +516,7 @@
 				}
 				var api_url;
 				if (search_mode == "Meals") {
-					api_url = "";
+					api_url = "/api/search_meals/";
 				} else if (search_mode == "Recipes") {
 					api_url = "/api/search_recipes/";
 				} else {
