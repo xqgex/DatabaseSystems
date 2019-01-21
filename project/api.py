@@ -79,8 +79,11 @@ def apiSuggestion(request):
 
 def cursorToJSON(cursor):
 	result = cursor.fetchall()
+	for row in result:
+		row['prep_time'] = str(row['prep_time'])
 	data = {"results": len(result),
 		"items": result}
+	print("data:\n",data)
 	return jsonApi(200, data)
 
 def handler(o):
@@ -200,7 +203,6 @@ def apiRecipeByCategory(request): # TODO: Currently not in use
 	return cursorToJSON(cursor)
 
 def apiRecipeByDishName(request): # 4
-	print("--- IN RECIPE BY DISH NAME ---")
 	name = request.GET['recipe_name'].replace('+',' ')
 	cursor = getCursor()
 	cursor.execute(("""
@@ -703,7 +705,6 @@ def apiRecipesSuggestion(request):
 	if (request.method != "GET") or (not request.is_ajax()):
 		return jsonApi(300, "Invalid call")
 	q = request.GET['q']
-	print("q = ", q)
 	cursor = getCursor()
 	cursor.execute(("""
 	Select rec.Name AS name, rec.Calories AS calories
@@ -711,7 +712,6 @@ def apiRecipesSuggestion(request):
 	Where rec.Name like '{0}%'
 	""").format(q))
 	rv = cursor.fetchall()
-	print("rv = ",rv)
 	data = {"suggestions": rv}
 	return jsonApi(200, data)
 
