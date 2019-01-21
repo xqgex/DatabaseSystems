@@ -182,7 +182,7 @@ def apiMealByNumRecipiesAndTotalTime(numRecipies, time):
 def apiOneMealByTotalTime(time):
 	cursor = getCursor()
 	cursor.execute(("""
-	SELECT rec.Name, rec.Prep_Time AS Total_Time
+	SELECT rec.Name, rec.Prep_Time AS Total_Time, rec.Url, rec.Image
 	FROM Recipe rec
 	WHERE rec.Prep_Time <= '{0}'
 	ORDER BY rec.Prep_Time DESC
