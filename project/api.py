@@ -51,12 +51,18 @@ def apiShowTables():
 def apiSuggestion(request):
 	if not request.is_ajax():
 		return jsonApi(300, "Invalid call")
-	#res = apiRecipeByNumOfIngredients(2) -> Checked # XXX XXX XXX
-	#res = apiRecipeByDiet('balanced') -> Checked # XXX XXX XXX
-	#res = apiRecipeByIngredientList(["liqueur", "apple"]) -> Checked # XXX XXX XXX
-	#res = apiRecipeByCategory('Meat') -> Checked # XXX XXX XXX
-	#res = apiRecipeByDishName('Hot Apple Pie') -> Checked # XXX XXX XXX
-	res = apiRecipeByMaxPrepTime('00:04:00')
+	# res = apiRecipeByNumOfIngredients(2) -> Checked
+	# res = apiRecipeByDiet('balanced') -> Checked
+	# res = apiRecipeByIngredientList(["liqueur", "apple"]) -> Checked
+	# res = apiRecipeByCategory('Meat') -> Checked
+	# res = apiRecipeByDishName('Hot Apple Pie') -> Checked
+	# res = apiRecipeByMaxPrepTime('00:04:00') -> Checked
+	# res = apiMealByNumRecipiesAndTotalTime(1, '00:10:00') -> Checked
+	# res = apiMealByNumRecipiesAndTotalTime(2, '00:10:00') -> Checked
+	# res = apiMealByNumRecipiesAndTotalTime(3, '00:10:00') -> Checked
+	# res = apiMealByNumRecipiesAndTotalTime(4, '00:10:00') -> Checked
+	# res = apiMealByNumRecipiesAndTotalTime(5, '00:10:00') -> Checked
+
 	#print(res) # XXX XXX XXX
 	data = {"suggestions": [
 			{ "value": "Arab Emirates", "data": "AE" },
@@ -66,26 +72,31 @@ def apiSuggestion(request):
 	return jsonApi(200, data)
 
 def cursorToJSON(cursor):
-	result = json.dumps(cursor.fetchall(), indent=4)
-	print(result)
-	return result
+	result = json.dumps(cursor.fetchall(), indent=4, default=handler)
+   print(result)
+   return result
 
-def apiRecipeByNumOfIngredients(num):
-	#if not request.is_ajax(): # TODO TODO TODO
-	#	return jsonApi(300, "Invalid call") # TODO TODO TODO
+def handler(o):
+	if isinstance(o, (datetime.timedelta)):
+		return str(o)
+
+def apiRecipeByNumOfIngredients(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	num = request.GET['num']
 	cursor = getCursor()
 	command = ("""
-	select rec_name, rec_ing_num, Url, Image
-	from(
-	select rec_name, rec_ing_num, recipe.Id AS rec_id, recipe.Url, recipe.Image
-	from(
+	SELECT rec_name, rec_ing_num, Url, Image
+	FROM(
+	SELECT rec_name, rec_ing_num, recipe.Id AS rec_id, recipe.Url, recipe.Image
+	FROM(
 	SELECT rec_name, count(*) as rec_ing_num
 	FROM(
-	select rec.Name AS rec_name, ing.Name AS ing_name
+	SELECT rec.Name AS rec_name, ing.Name AS ing_name
 	FROM Recipe AS rec
 	JOIN Recipe_Ingredient AS rec_ing
 	JOIN Ingredient AS ing
-	ON rec_ing.Recipe_Id = rec.Id AND rec_ing.Ingredient_Id = ing.Id
+	ON rec_ing.Recipe_Id =  rec.Id AND rec_ing.Ingredient_Id = ing.Id
 	) x
 	GROUP BY rec_name
 	) y
@@ -98,17 +109,23 @@ def apiRecipeByNumOfIngredients(num):
 	cursor.execute(command)
 	return cursorToJSON(cursor)
 
-def apiRecipeByMaxPrepTime(time):
+def apiRecipeByMaxPrepTime(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	time = request.GET['time']
 	cursor = getCursor()
 	cursor.execute(("""
-		SELECT json_object('Recipe_Name', rec.Name,'Prep_Time', rec.Prep_Time)
+		SELECT rec.Name AS Recipe_Name, rec.Prep_Time AS Prep_Time, rec.Url, rec.Image
 		FROM Recipe AS rec
 		WHERE TIME(rec.Prep_Time) <= '{0}'
 		LIMIT {1}
 	""").format(time, GLOBAL_RESULTS_LIMIT))
 	return cursorToJSON(cursor)
 
-def apiRecipeByDiet(diet):
+def apiRecipeByDiet(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	diet = request.GET['diet']
 	cursor = getCursor()
 	cursor.execute(("""
 		SELECT diet.Name AS Diet_Name, rec.Name AS Recipe_Name, rec.Url, rec.Image
@@ -123,7 +140,10 @@ def apiRecipeByDiet(diet):
 	""").format(diet, GLOBAL_RESULTS_LIMIT))
 	return cursorToJSON(cursor)
 
-def apiRecipeByCategory(category):
+def apiRecipeByCategory(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	category = request.GET['category']
 	cursor = getCursor()
 	cursor.execute(("""
 		SELECT y.Category_Name, recipe.Name AS Recipe_Name, recipe.Url, recipe.Image
@@ -146,7 +166,10 @@ def apiRecipeByCategory(category):
 	""").format(category, GLOBAL_RESULTS_LIMIT))
 	return cursorToJSON(cursor)
 
-def apiRecipeByDishName(name):
+def apiRecipeByDishName(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	name = request.GET['name']
 	cursor = getCursor()
 	cursor.execute(("""
 		SELECT rec.Name AS Recipe_Name,
@@ -156,7 +179,11 @@ def apiRecipeByDishName(name):
 	""").format(name))
 	return cursorToJSON(cursor)
 
-def apiMealByNumRecipiesAndTotalTime(numRecipies, time):
+def apiMealByNumRecipiesAndTotalTime(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	numRecipies = request.GET['numRecipies']
+	time = request.GET['time']
 	if (numRecipies == 1):
 		return apiOneMealByTotalTime(time)
 	if (numRecipies == 2):
@@ -172,14 +199,12 @@ def apiMealByNumRecipiesAndTotalTime(numRecipies, time):
 def apiOneMealByTotalTime(time):
 	cursor = getCursor()
 	cursor.execute(("""
-	SELECT rec.Name, rec.Prep_Time AS Total_Time
+	SELECT rec.Name, rec.Prep_Time AS Total_Time, rec.Url, rec.Image
 	FROM Recipe rec
 	WHERE rec.Prep_Time <= '{0}'
 	ORDER BY rec.Prep_Time DESC
 	LIMIT 1
 	""").format(time))
-	#data = cursor.fetchall() # XXX XXX XXX
-	#print(data) # XXX XXX XXX
 	return cursorToJSON(cursor)
 
 def apiTwoMealsByTotalTime(time):
@@ -190,15 +215,15 @@ def apiTwoMealsByTotalTime(time):
 	ADDTIME(x.R1_Time, x.R2_Time) AS Total_Time
 	FROM(
 		SELECT R1.Name AS R1_Name , R1.Prep_Time AS R1_Time, R1.Url AS R1_Url, R1.Image AS R1_Image,
-			R2.Name AS R2_Name, R2.Prep_Time AS R2_Time, R2.Url AS R2_Url, R2.Image AS R2_Image
+						R2.Name AS R2_Name, R2.Prep_Time AS R2_Time, R2.Url AS R2_Url, R2.Image AS R2_Image
 			FROM (
 				SELECT Id, Name, Prep_Time, Url, Image FROM Recipe WHERE Prep_Time < '{0}'
-				) AS R1,
-				(
+				 ) AS R1,
+				 (
 				SELECT Id, Name, Prep_Time, Url, Image FROM Recipe WHERE Prep_Time < '{0}'
-				) AS R2
+				 ) AS R2
 		WHERE ADDTIME(R1.Prep_Time, R2.Prep_Time) <= '{0}' AND R1.Name != R2.Name
-		LIMIT '{1}'
+		LIMIT {1}
 	) x
 	ORDER BY Total_Time DESC
 	LIMIT 1
@@ -211,24 +236,24 @@ def apiThreeMealsByTotalTime(time):
 	SELECT x.R1_Name, x.R1_Time, x.R1_Url ,x.R1_Image,
 	x.R2_Name, x.R2_Time, x.R2_Url ,x.R2_Image,
 	x.R3_Name, x.R3_Time, x.R3_Url ,x.R3_Image,
-	(ADDTIME(ADDTIME(x.R1_Time, x.R2_Time), x.R3_Time) AS Total_Time
+	ADDTIME(ADDTIME(x.R1_Time, x.R2_Time), x.R3_Time) AS Total_Time
 	FROM(
 		SELECT R1.Name AS R1_Name , R1.Prep_Time AS R1_Time, R1.Url AS R1_Url, R1.Image AS R1_Image,
-			R2.Name AS R2_Name, R2.Prep_Time AS R2_Time, R2.Url AS R2_Url, R2.Image AS R2_Image,
-			R3.Name AS R3_Name, R3.Prep_Time AS R3_Time, R3.Url AS R3_Url, R3.Image AS R3_Image
+						R2.Name AS R2_Name, R2.Prep_Time AS R2_Time, R2.Url AS R2_Url, R2.Image AS R2_Image,
+						R3.Name AS R3_Name, R3.Prep_Time AS R3_Time, R3.Url AS R3_Url, R3.Image AS R3_Image
 			FROM (
 				SELECT Id, Name, Prep_Time, Url, Image FROM Recipe WHERE Prep_Time < '{0}'
-				) AS R1,
-				(
+				 ) AS R1,
+				 (
 				SELECT Id, Name, Prep_Time, Url, Image FROM Recipe WHERE Prep_Time < '{0}'
-				) AS R2,
-				(
+				 ) AS R2,
+				 (
 				SELECT Id, Name, Prep_Time, Url, Image FROM Recipe WHERE Prep_Time < '{0}'
-				) AS R3
+				 ) AS R3
 		WHERE ADDTIME(ADDTIME(R1.Prep_Time, R2.Prep_Time), R3.Prep_Time) <= '{0}'
 		AND R1.Name != R2.Name AND R1.Name != R3.Name
-	AND R2.Name != R3.Name
-	LIMIT '{1}'
+        AND R2.Name != R3.Name
+        LIMIT {1}
 	) x
 	ORDER BY Total_Time DESC
 	LIMIT 1
@@ -245,26 +270,26 @@ def apiFourMealsByTotalTime(time):
 	ADDTIME(ADDTIME(ADDTIME(x.R1_Time, x.R2_Time), x.R3_Time), x.R4_Time) AS Total_Time
 	FROM(
 		SELECT R1.Name AS R1_Name , R1.Prep_Time AS R1_Time, R1.Url AS R1_Url, R1.Image AS R1_Image,
-			R2.Name AS R2_Name, R2.Prep_Time AS R2_Time, R2.Url AS R2_Url, R2.Image AS R2_Image,
-			R3.Name AS R3_Name, R3.Prep_Time AS R3_Time, R3.Url AS R3_Url, R3.Image AS R3_Image,
-			R4.Name AS R4_Name, R4.Prep_Time AS R4_Time, R4.Url AS R4_Url, R4.Image AS R4_Image
+						R2.Name AS R2_Name, R2.Prep_Time AS R2_Time, R2.Url AS R2_Url, R2.Image AS R2_Image,
+						R3.Name AS R3_Name, R3.Prep_Time AS R3_Time, R3.Url AS R3_Url, R3.Image AS R3_Image,
+						R4.Name AS R4_Name, R4.Prep_Time AS R4_Time, R4.Url AS R4_Url, R4.Image AS R4_Image
 			FROM (
 				SELECT Id, Name, Prep_Time, Url, Image FROM Recipe WHERE Prep_Time < '{0}'
-				) AS R1,
-				(
+				 ) AS R1,
+				 (
 				SELECT Id, Name, Prep_Time, Url, Image FROM Recipe WHERE Prep_Time < '{0}'
-				) AS R2,
-				(
+				 ) AS R2,
+				 (
 				SELECT Id, Name, Prep_Time, Url, Image FROM Recipe WHERE Prep_Time < '{0}'
-				) AS R3,
-				(
+				 ) AS R3,
+				 (
 				SELECT Id, Name, Prep_Time, Url, Image FROM Recipe WHERE Prep_Time < '{0}'
-				) AS R4
+				 ) AS R4
 		WHERE ADDTIME(ADDTIME(ADDTIME(R1.Prep_Time, R2.Prep_Time), R3.Prep_Time), R4.Prep_Time) <= '{0}'
 		AND R1.Name != R2.Name AND R1.Name != R3.Name AND R1.Name != R4.Name
-	AND R2.Name != R3.Name AND R2.Name != R4.Name
-	AND R3.Name != R4.Name
-	LIMIT '{1}'
+        AND R2.Name != R3.Name AND R2.Name != R4.Name
+        AND R3.Name != R4.Name
+        LIMIT {1}
 	) x
 	ORDER BY Total_Time DESC
 	LIMIT 1
@@ -282,39 +307,42 @@ def apiFiveMealsByTotalTime(time):
 	ADDTIME(ADDTIME(ADDTIME(ADDTIME(x.R1_Time, x.R2_Time), x.R3_Time), x.R4_Time), x.R5_TIME) AS Total_Time
 	FROM(
 		SELECT R1.Name AS R1_Name , R1.Prep_Time AS R1_Time, R1.Url AS R1_Url, R1.Image AS R1_Image,
-			R2.Name AS R2_Name, R2.Prep_Time AS R2_Time, R2.Url AS R2_Url, R2.Image AS R2_Image,
-			R3.Name AS R3_Name, R3.Prep_Time AS R3_Time, R3.Url AS R3_Url, R3.Image AS R3_Image,
-			R4.Name AS R4_Name, R4.Prep_Time AS R4_Time, R4.Url AS R4_Url, R4.Image AS R4_Image,
-			R5.Name AS R5_Name, R5.Prep_Time AS R5_Time, R5.Url AS R5_Url, R5.Image AS R5_Image
+						R2.Name AS R2_Name, R2.Prep_Time AS R2_Time, R2.Url AS R2_Url, R2.Image AS R2_Image,
+						R3.Name AS R3_Name, R3.Prep_Time AS R3_Time, R3.Url AS R3_Url, R3.Image AS R3_Image,
+						R4.Name AS R4_Name, R4.Prep_Time AS R4_Time, R4.Url AS R4_Url, R4.Image AS R4_Image,
+						R5.Name AS R5_Name, R5.Prep_Time AS R5_Time, R5.Url AS R5_Url, R5.Image AS R5_Image
 		FROM (
 			SELECT Id, Name, Prep_Time, Url, Image FROM Recipe WHERE Prep_Time < '{0}'
-			) AS R1,
-			(
+			 ) AS R1,
+			 (
 			SELECT Id, Name, Prep_Time, Url, Image FROM Recipe WHERE Prep_Time < '{0}'
-			) AS R2,
-			(
+			 ) AS R2,
+			 (
 			SELECT Id, Name, Prep_Time, Url, Image FROM Recipe WHERE Prep_Time < '{0}'
-			) AS R3,
-			(
+			 ) AS R3,
+			 (
 			SELECT Id, Name, Prep_Time, Url, Image FROM Recipe WHERE Prep_Time < '{0}'
-			) AS R4,
-			(
+			 ) AS R4,
+			 (
 			SELECT Id, Name, Prep_Time, Url, Image FROM Recipe WHERE Prep_Time < '{0}'
-			) AS R5
+			 ) AS R5
 		WHERE ADDTIME(ADDTIME(ADDTIME(ADDTIME(R1.Prep_Time, R2.Prep_Time),
-		R3.Prep_Time), R4.Prep_Time), R5.Prep_Time) <= '{0}'
+		 R3.Prep_Time), R4.Prep_Time), R5.Prep_Time) <= '{0}'
 		AND R1.Name != R2.Name AND R1.Name != R3.Name AND R1.Name != R4.Name AND R1.Name != R5.Name
-	AND R2.Name != R3.Name AND R2.Name != R4.Name AND R2.Name != R5.Name
-	AND R3.Name != R4.Name AND R3.Name != R5.Name
+        AND R2.Name != R3.Name AND R2.Name != R4.Name AND R2.Name != R5.Name
+        AND R3.Name != R4.Name AND R3.Name != R5.Name
 		AND R4.Name != R5.Name
-	LIMIT '{1}'
+        LIMIT {1}
 	) x
 	ORDER BY Total_Time DESC
 	LIMIT 1
 	""").format(time,GLOBAL_CALC_RESULTS_LIMITS))
 	return cursorToJSON(cursor)
 
-def apiRecipeByIngredientList(list):
+def apiRecipeByIngredientList(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	list = request.GET['list']
 	if(len(list) == 1):
 		return apiRecipeByOneIngredient(list)
 	if(len(list) == 2):
@@ -334,23 +362,23 @@ def apiRecipeByOneIngredient(list):
 	FROM Recipe AS d
 	JOIN Ingredient AS ing
 	INNER JOIN (
-	select Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name
+	SELECT Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name
 	FROM(
-	select * from Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
+	SELECT * FROM Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
 	ON ing.Id = rec_ing.Ingredient_Id) x1
 	) AS i1
-	ON d.Id = i1.rec_id
-	AND i1.ing_name = '{0}'
+	  ON d.Id = i1.rec_id
+	  AND i1.ing_name = '{0}'
 	join (
-	select rec_name, rec_ing_num, recipe.Id AS rec_id
-	from(
+	SELECT rec_name, rec_ing_num, recipe.Id AS rec_id
+	FROM(
 	SELECT rec_name, count(*) as rec_ing_num
 	FROM(
-	select rec.Name AS rec_name, ing.Name AS ing_name
+	SELECT rec.Name AS rec_name, ing.Name AS ing_name
 	FROM Recipe AS rec
 	JOIN Recipe_Ingredient AS rec_ing
 	JOIN Ingredient AS ing
-	ON rec_ing.Recipe_Id = rec.Id AND rec_ing.Ingredient_Id = ing.Id
+	ON rec_ing.Recipe_Id =  rec.Id AND rec_ing.Ingredient_Id = ing.Id
 	) x
 	GROUP BY rec_name
 	) y
@@ -358,7 +386,7 @@ def apiRecipeByOneIngredient(list):
 	ON y.rec_name = recipe.Name
 	) z
 	ON d.Id = z.rec_id
-	where z.rec_ing_num = 1
+	WHERE z.rec_ing_num = 1
 	""").format(list[0]))
 	return cursorToJSON(cursor)
 
@@ -368,31 +396,34 @@ def apiRecipeByTwoIngredients(list):
 	SELECT distinct d.Name AS rec_name, z.rec_ing_num, d.Url, d.Image
 	FROM Recipe AS d
 	JOIN Ingredient AS ing
+
 	INNER JOIN (
-	select Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name
+	SELECT Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name
 	FROM(
-	select * from Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
+	SELECT * FROM Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
 	ON ing.Id = rec_ing.Ingredient_Id) x1
 	) AS i1
-	ON d.Id = i1.rec_id
-	AND i1.ing_name = '{0}'
+	  ON d.Id = i1.rec_id
+	  AND i1.ing_name = '{0}'
+
 	INNER JOIN (
-	select Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
-	select * from Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
+	SELECT Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
+	SELECT * FROM Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
 	ON ing.Id = rec_ing.Ingredient_Id) x2
 	) AS i2
-	ON d.Id = i2.rec_id
-	AND i2.ing_name = '{1}'
+	  ON d.Id = i2.rec_id
+	  AND i2.ing_name = '{1}'
+
 	join (
-	select rec_name, rec_ing_num, recipe.Id AS rec_id
-	from(
+	SELECT rec_name, rec_ing_num, recipe.Id AS rec_id
+	FROM(
 	SELECT rec_name, count(*) as rec_ing_num
 	FROM(
-	select rec.Name AS rec_name, ing.Name AS ing_name
+	SELECT rec.Name AS rec_name, ing.Name AS ing_name
 	FROM Recipe AS rec
 	JOIN Recipe_Ingredient AS rec_ing
 	JOIN Ingredient AS ing
-	ON rec_ing.Recipe_Id = rec.Id AND rec_ing.Ingredient_Id = ing.Id
+	ON rec_ing.Recipe_Id =  rec.Id AND rec_ing.Ingredient_Id = ing.Id
 	) x
 	GROUP BY rec_name
 	) y
@@ -400,57 +431,63 @@ def apiRecipeByTwoIngredients(list):
 	ON y.rec_name = recipe.Name
 	) z
 	ON d.Id = z.rec_id
-	where z.rec_ing_num = 2
+	WHERE z.rec_ing_num = 2
+
 	""").format(list[0], list[1]))
 	return cursorToJSON(cursor)
 
 def apiRecipeByThreeIngredients(list):
 	cursor = getCursor()
 	cursor.execute(("""
-	SELECT distinct d.Name AS rec_name, z.rec_ing_num, d.Url, d.Image
-	FROM Recipe AS d
-	JOIN Ingredient AS ing
-	INNER JOIN (
-	select Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name
-	FROM(
-	select * from Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
-	ON ing.Id = rec_ing.Ingredient_Id) x1
-	) AS i1
-	ON d.Id = i1.rec_id
-	AND i1.ing_name = '{0}'
-	INNER JOIN (
-	select Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
-	select * from Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
-	ON ing.Id = rec_ing.Ingredient_Id) x2
-	) AS i2
-	ON d.Id = i2.rec_id
-	AND i2.ing_name = '{1}'
-	INNER JOIN (
-	select Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
-	select * from Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
-	ON ing.Id = rec_ing.Ingredient_Id) x3
-	) AS i3
-	ON d.Id = i3.rec_id
-	AND i3.ing_name = '{2}'
-	join (
-	select rec_name, rec_ing_num, recipe.Id AS rec_id
-	from(
-	SELECT rec_name, count(*) as rec_ing_num
-	FROM(
-	select rec.Name AS rec_name, ing.Name AS ing_name
-	FROM Recipe AS rec
-	JOIN Recipe_Ingredient AS rec_ing
-	JOIN Ingredient AS ing
-	ON rec_ing.Recipe_Id = rec.Id AND rec_ing.Ingredient_Id = ing.Id
-	) x
-	GROUP BY rec_name
-	) y
-	JOIN Recipe recipe
-	ON y.rec_name = recipe.Name
-	) z
-	ON d.Id = z.rec_id
-	where z.rec_ing_num = 3
-	""").format(list[0], list[1], list[2]))
+SELECT distinct d.Name AS rec_name, z.rec_ing_num, d.Url, d.Image
+FROM Recipe AS d
+JOIN Ingredient AS ing
+
+INNER JOIN (
+SELECT Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name
+FROM(
+SELECT * FROM Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
+ON ing.Id = rec_ing.Ingredient_Id) x1
+) AS i1
+  ON d.Id = i1.rec_id
+  AND i1.ing_name = '{0}'
+
+INNER JOIN (
+SELECT Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
+SELECT * FROM Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
+ON ing.Id = rec_ing.Ingredient_Id) x2
+) AS i2
+  ON d.Id = i2.rec_id
+  AND i2.ing_name = '{1}'
+
+INNER JOIN (
+SELECT Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
+SELECT * FROM Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
+ON ing.Id = rec_ing.Ingredient_Id) x3
+) AS i3
+ON d.Id = i3.rec_id
+AND i3.ing_name = '{2}'
+
+join (
+SELECT rec_name, rec_ing_num, recipe.Id AS rec_id
+FROM(
+SELECT rec_name, count(*) as rec_ing_num
+FROM(
+SELECT rec.Name AS rec_name, ing.Name AS ing_name
+FROM Recipe AS rec
+JOIN Recipe_Ingredient AS rec_ing
+JOIN Ingredient AS ing
+ON rec_ing.Recipe_Id =  rec.Id AND rec_ing.Ingredient_Id = ing.Id
+) x
+GROUP BY rec_name
+) y
+JOIN Recipe recipe
+ON y.rec_name = recipe.Name
+) z
+ON d.Id = z.rec_id
+WHERE z.rec_ing_num = 3
+
+""").format(list[0], list[1], list[2]))
 	return cursorToJSON(cursor)
 
 def apiRecipeByFourIngredients(list):
@@ -459,45 +496,50 @@ def apiRecipeByFourIngredients(list):
 	SELECT distinct d.Name AS rec_name, z.rec_ing_num, d.Url, d.Image
 	FROM Recipe AS d
 	JOIN Ingredient AS ing
+
 	INNER JOIN (
-	select Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name
+	SELECT Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name
 	FROM(
-	select * from Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
+	SELECT * FROM Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
 	ON ing.Id = rec_ing.Ingredient_Id) x1
 	) AS i1
-	ON d.Id = i1.rec_id
-	AND i1.ing_name = '{0}'
+	  ON d.Id = i1.rec_id
+	  AND i1.ing_name = '{0}'
+
 	INNER JOIN (
-	select Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
-	select * from Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
+	SELECT Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
+	SELECT * FROM Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
 	ON ing.Id = rec_ing.Ingredient_Id) x2
 	) AS i2
-	ON d.Id = i2.rec_id
-	AND i2.ing_name = '{1}'
+	  ON d.Id = i2.rec_id
+	  AND i2.ing_name = '{1}'
+
 	INNER JOIN (
-	select Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
-	select * from Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
+	SELECT Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
+	SELECT * FROM Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
 	ON ing.Id = rec_ing.Ingredient_Id) x3
 	) AS i3
 	ON d.Id = i3.rec_id
 	AND i3.ing_name = '{2}'
+
 	INNER JOIN (
-	select Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
-	select * from Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
+	SELECT Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
+	SELECT * FROM Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
 	ON ing.Id = rec_ing.Ingredient_Id) x4
 	) AS i4
 	ON d.Id = i4.rec_id
 	AND i4.ing_name = '{3}'
+
 	join (
-	select rec_name, rec_ing_num, recipe.Id AS rec_id
-	from(
+	SELECT rec_name, rec_ing_num, recipe.Id AS rec_id
+	FROM(
 	SELECT rec_name, count(*) as rec_ing_num
 	FROM(
-	select rec.Name AS rec_name, ing.Name AS ing_name
+	SELECT rec.Name AS rec_name, ing.Name AS ing_name
 	FROM Recipe AS rec
 	JOIN Recipe_Ingredient AS rec_ing
 	JOIN Ingredient AS ing
-	ON rec_ing.Recipe_Id = rec.Id AND rec_ing.Ingredient_Id = ing.Id
+	ON rec_ing.Recipe_Id =  rec.Id AND rec_ing.Ingredient_Id = ing.Id
 	) x
 	GROUP BY rec_name
 	) y
@@ -505,7 +547,8 @@ def apiRecipeByFourIngredients(list):
 	ON y.rec_name = recipe.Name
 	) z
 	ON d.Id = z.rec_id
-	where z.rec_ing_num = 4
+	WHERE z.rec_ing_num = 4
+
 	""").format(list[0], list[1], list[2], list[3]))
 	return cursorToJSON(cursor)
 
@@ -515,52 +558,58 @@ def apiRecipeByFiveIngredients(list):
 	SELECT distinct d.Name AS rec_name, z.rec_ing_num, d.Url, d.Image
 	FROM Recipe AS d
 	JOIN Ingredient AS ing
+
 	INNER JOIN (
-	select Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name
+	SELECT Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name
 	FROM(
-	select * from Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
+	SELECT * FROM Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
 	ON ing.Id = rec_ing.Ingredient_Id) x1
 	) AS i1
-	ON d.Id = i1.rec_id
-	AND i1.ing_name = '{0}'
+	  ON d.Id = i1.rec_id
+	  AND i1.ing_name = '{0}'
+
 	INNER JOIN (
-	select Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
-	select * from Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
+	SELECT Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
+	SELECT * FROM Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
 	ON ing.Id = rec_ing.Ingredient_Id) x2
 	) AS i2
-	ON d.Id = i2.rec_id
-	AND i2.ing_name = '{1}'
+	  ON d.Id = i2.rec_id
+	  AND i2.ing_name = '{1}'
+
 	INNER JOIN (
-	select Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
-	select * from Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
+	SELECT Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
+	SELECT * FROM Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
 	ON ing.Id = rec_ing.Ingredient_Id) x3
 	) AS i3
 	ON d.Id = i3.rec_id
 	AND i3.ing_name = '{2}'
+
 	INNER JOIN (
-	select Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
-	select * from Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
+	SELECT Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
+	SELECT * FROM Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
 	ON ing.Id = rec_ing.Ingredient_Id) x4
 	) AS i4
 	ON d.Id = i4.rec_id
 	AND i4.ing_name = '{3}'
+
 	INNER JOIN (
-	select Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
-	select * from Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
+	SELECT Recipe_Id AS rec_id, Ingredient_Id AS ing_id, Name AS ing_name FROM(
+	SELECT * FROM Recipe_Ingredient AS rec_ing JOIN Ingredient AS ing
 	ON ing.Id = rec_ing.Ingredient_Id) x5
 	) AS i5
 	ON d.Id = i5.rec_id
 	AND i5.ing_name = '{4}'
+
 	join (
-	select rec_name, rec_ing_num, recipe.Id AS rec_id
-	from(
+	SELECT rec_name, rec_ing_num, recipe.Id AS rec_id
+	FROM(
 	SELECT rec_name, count(*) as rec_ing_num
 	FROM(
-	select rec.Name AS rec_name, ing.Name AS ing_name
+	SELECT rec.Name AS rec_name, ing.Name AS ing_name
 	FROM Recipe AS rec
 	JOIN Recipe_Ingredient AS rec_ing
 	JOIN Ingredient AS ing
-	ON rec_ing.Recipe_Id = rec.Id AND rec_ing.Ingredient_Id = ing.Id
+	ON rec_ing.Recipe_Id =  rec.Id AND rec_ing.Ingredient_Id = ing.Id
 	) x
 	GROUP BY rec_name
 	) y
@@ -568,7 +617,8 @@ def apiRecipeByFiveIngredients(list):
 	ON y.rec_name = recipe.Name
 	) z
 	ON d.Id = z.rec_id
-	where z.rec_ing_num = 5
+	WHERE z.rec_ing_num = 5
+
 	""").format(list[0], list[1], list[2], list[3], list[4]))
 	return cursorToJSON(cursor)
 
