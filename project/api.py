@@ -34,8 +34,14 @@ GLOBAL_CALC_RESULTS_LIMITS = 10000
 # 21) def apiRecipeByFiveIngredients(list):						####
 ####################################################################
 def getCursor():
-	connection = pymysql.connect(host='localhost',
-					port=3305,
+	# connection = pymysql.connect(host='localhost',
+	# 				port=3305,
+	# 				user='DbMysql14',
+	# 				password='DbMysql14',
+	# 				db='DbMysql14',
+	# 				cursorclass=pymysql.cursors.DictCursor)
+	connection = pymysql.connect(host='delta-tomcat-vm.cs.tau.ac.il',
+					port=40777,
 					user='DbMysql14',
 					password='DbMysql14',
 					db='DbMysql14',
@@ -73,29 +79,48 @@ def apiSuggestion(request):
 
 def cursorToJSON(cursor):
 	result = json.dumps(cursor.fetchall(), indent=4, default=handler)
-	return jsonApi(200, result)
+	data = {"results": len(result),
+		"items": [result]}
+	print(data)
+	return jsonApi(200, data)
 
 def handler(o):
 	if isinstance(o, (datetime.timedelta)):
 		return str(o)
 
-#def apiSearchRecipes(request):
-#	if not request.is_ajax():
-#		return jsonApi(300, "Invalid call")
-#	if (request.GET['recipe_name'] != ''):
-#		return apiRecipeByDishName(request)
-#	# if (request.GET['ingredients_max'] != ''):   # TODO: UNCOMMENT AFTER UI IMPLEMENTATION
-#	# 	return apiRecipeByNumOfIngredients(request)
-#	if (request.GET['prep_to'] != '180'):
-#		return apiRecipeByMaxPrepTime(request)
-#	if (request.GET['diet'] != 'any'):
-#		return apiRecipeByDiet(request)
-#	# if ('num_recipes' in request.GET and 'time' in request.GET): # TODO: CHANGE PARAMETER ACCORDING UI
-#	# 	return apiMealByNumRecipiesAndTotalTime(request)
-#	# if ('ingredient_list' in request.GET): # TODO: CHANGE PARAMETER ACCORDING UI
-#	# 	return apiRecipeByIngredientList(request)
-#	if ('selected_recipes' in request.GET):
-#		return apiIngredientsListByRecipiesList(request)
+def apiSearchRecipes(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	if (request.GET['recipe_name'] != ''):
+		return apiRecipeByDishName(request)
+	if (request.GET['ingredients_max'] != '0'):
+		return apiRecipeByNumOfIngredients(request)
+	if (request.GET['prep_to'] != '180'):
+		return apiRecipeByMaxPrepTime(request)
+	if (request.GET['diet'] != 'any'):
+		return apiRecipeByDiet(request)
+	# if ('num_recipes' in request.GET and 'time' in request.GET): # TODO: CHANGE PARAMETER ACCORDING UI
+	# 	return apiMealByNumRecipiesAndTotalTime(request)
+	if (request.GET['ingredients_inc'] != ''):
+		return apiRecipeByIngredientList(request)
+	if ('selected_recipes' in request.GET):
+		return apiIngredientsListByRecipiesList(request)
+	else:
+		return apiDefaultResponse(request)
+
+def apiDefaultResponse(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	data = {"results": 45321,
+		"items": [
+			{"id": 1, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
+			{"id": 2, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"},
+			{"id": 3, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
+			{"id": 4, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"},
+			{"id": 5, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
+			{"id": 6, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"}
+		]}
+	return jsonApi(200, data)
 
 # Example for request:
 # recipe_name=Hot+Apple+Pie&
@@ -383,7 +408,7 @@ def apiFiveMealsByTotalTime(time):
 def apiRecipeByIngredientList(request):
 	if not request.is_ajax():
 		return jsonApi(300, "Invalid call")
-	list = request.GET['ingredient_list'] # TODO: CHANGE PARAMETER ACCORDING UI
+	list = request.GET['ingredients_inc'].split("+") # TODO: CHANGE PARAMETER ACCORDING UI
 	if(len(list) == 1):
 		return apiRecipeByOneIngredient(list)
 	if(len(list) == 2):
@@ -720,16 +745,16 @@ def apiRecipesSuggestion(request):
 		]}
 	return jsonApi(200, data)
 
-def apiSearchRecipes(request):
-	if not request.is_ajax():
-		return jsonApi(300, "Invalid call")
-	data = {"results": 45321,
-		"items": [
-			{"id": 1, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
-			{"id": 2, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"},
-			{"id": 3, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
-			{"id": 4, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"},
-			{"id": 5, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
-			{"id": 6, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"}
-		]}
-	return jsonApi(200, data)
+#def apiSearchRecipes(request):
+#	if not request.is_ajax():
+#		return jsonApi(300, "Invalid call")
+#	data = {"results": 45321,
+#		"items": [
+#			{"id": 1, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
+#			{"id": 2, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"},
+#			{"id": 3, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
+#			{"id": 4, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"},
+#			{"id": 5, "name": "Balsamic-Glazed Steak Rolls", "prep_time": "02:15:00", "calories": 1999, "url": "https://Lorem.ipsum", "image": "https://images-gmi-pmc.edge-generalmills.com/7455fc0a-ffad-4526-8b68-e1a8b179914e.jpg"},
+#			{"id": 6, "name": "Mongolian Glazed Steak", "prep_time": "01:00:00", "calories": 2001, "url": "https://Lorem.at.ipsum", "image": "https://s3.amazonaws.com/supercook-thumbs/363402.jpg"}
+#		]}
+#	return jsonApi(200, data)
