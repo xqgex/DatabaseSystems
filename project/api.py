@@ -80,9 +80,10 @@ def handler(o):
 	if isinstance(o, (datetime.timedelta)):
 		return str(o)
 
-def apiRecipeByNumOfIngredients(num):
-	#if not request.is_ajax(): # TODO TODO TODO
-	#	return jsonApi(300, "Invalid call") # TODO TODO TODO
+def apiRecipeByNumOfIngredients(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	num = request.GET['num']
 	cursor = getCursor()
 	command = ("""
 	SELECT rec_name, rec_ing_num, Url, Image
@@ -108,7 +109,10 @@ def apiRecipeByNumOfIngredients(num):
 	cursor.execute(command)
 	return cursorToJSON(cursor)
 
-def apiRecipeByMaxPrepTime(time):
+def apiRecipeByMaxPrepTime(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	time = request.GET['time']
 	cursor = getCursor()
 	cursor.execute(("""
 		SELECT rec.Name AS Recipe_Name, rec.Prep_Time AS Prep_Time, rec.Url, rec.Image
@@ -118,7 +122,10 @@ def apiRecipeByMaxPrepTime(time):
 	""").format(time, GLOBAL_RESULTS_LIMIT))
 	return cursorToJSON(cursor)
 
-def apiRecipeByDiet(diet):
+def apiRecipeByDiet(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	diet = request.GET['diet']
 	cursor = getCursor()
 	cursor.execute(("""
 		SELECT diet.Name AS Diet_Name, rec.Name AS Recipe_Name, rec.Url, rec.Image
@@ -133,7 +140,10 @@ def apiRecipeByDiet(diet):
 	""").format(diet, GLOBAL_RESULTS_LIMIT))
 	return cursorToJSON(cursor)
 
-def apiRecipeByCategory(category):
+def apiRecipeByCategory(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	category = request.GET['category']
 	cursor = getCursor()
 	cursor.execute(("""
 		SELECT y.Category_Name, recipe.Name AS Recipe_Name, recipe.Url, recipe.Image
@@ -156,7 +166,10 @@ def apiRecipeByCategory(category):
 	""").format(category, GLOBAL_RESULTS_LIMIT))
 	return cursorToJSON(cursor)
 
-def apiRecipeByDishName(name):
+def apiRecipeByDishName(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	name = request.GET['name']
 	cursor = getCursor()
 	cursor.execute(("""
 		SELECT rec.Name AS Recipe_Name,
@@ -166,7 +179,11 @@ def apiRecipeByDishName(name):
 	""").format(name))
 	return cursorToJSON(cursor)
 
-def apiMealByNumRecipiesAndTotalTime(numRecipies, time):
+def apiMealByNumRecipiesAndTotalTime(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	numRecipies = request.GET['numRecipies']
+	time = request.GET['time']
 	if (numRecipies == 1):
 		return apiOneMealByTotalTime(time)
 	if (numRecipies == 2):
@@ -322,7 +339,10 @@ def apiFiveMealsByTotalTime(time):
 	""").format(time,GLOBAL_CALC_RESULTS_LIMITS))
 	return cursorToJSON(cursor)
 
-def apiRecipeByIngredientList(list):
+def apiRecipeByIngredientList(request):
+	if not request.is_ajax():
+		return jsonApi(300, "Invalid call")
+	list = request.GET['list']
 	if(len(list) == 1):
 		return apiRecipeByOneIngredient(list)
 	if(len(list) == 2):
