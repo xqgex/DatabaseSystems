@@ -64,8 +64,8 @@
 				responsiveWidth: 900,
 				afterLoad: function(origin, destination, direction) {
 					if (destination == 3) {
-						if (diet_not_loaded && loadDiets()) {
-							diet_not_loaded = false;
+						if (diet_not_loaded) {
+							loadDiets();
 						}
 						if (search_mode != "Meals") {
 							search_mode = "Meals";
@@ -74,8 +74,8 @@
 						}
 						$("#search_main_container").detach().appendTo("#section2");
 					} else if (destination == 4) {
-						if (diet_not_loaded && loadDiets()) {
-							diet_not_loaded = false;
+						if (diet_not_loaded) {
+							loadDiets();
 						}
 						if (search_mode != "Recipes") {
 							search_mode = "Recipes";
@@ -361,11 +361,10 @@
 							$("#md-panel-ingredient .md-panel").css("left", ($("#ingredient_filter").position().left+390) + "px");
 							$("#md-panel-ingredient .md-panel").css("top", ($("#ingredient_filter").position().top+160) + "px");
 							prep_from.change();
-							return true;
+							diet_not_loaded = false;
 						}
 					}
 				});
-				return false;
 			}
 			function ClearMeals() {
 				$("#recipes-list").empty();
@@ -495,6 +494,7 @@
 				var diet = $("#md-container-diets .keyingredient_selected").attr("value");
 				var prep_from = $("#PrepFrom").find(":selected")[0].id;
 				var prep_to = $("#PrepTo").find(":selected")[0].id;
+				var ingredients_max = $("#IngredientsCount").find(":selected")[0].id;
 				var ingredients_inc = [];
 				var ingredients_exc = [];
 				for (var i = 1; i < 6; ++i) {
@@ -520,7 +520,6 @@
 				} else if (search_mode == "Recipes") {
 					api_url = "/api/search_recipes/";
 				} else {
-					console.log("ERROR " + search_mode);
 					return false;
 				}
 				$.ajax({
@@ -530,7 +529,7 @@
 						diet: diet,
 						prep_from: prep_from,
 						prep_to: prep_to,
-						ingredients_max: 0, // TODO TODO TODO
+						ingredients_max: ingredients_max,
 						ingredients_inc: ingredients_inc.join("+"),
 						ingredients_exc: ingredients_exc.join("+"),
 						sort_by: sort_by,
@@ -724,6 +723,18 @@
 					<div class="md-panel" style="left: 880px;">
 						<div class="keyingredient_menu filter_menu">
 							<h6 class="md-subhead" style="min-width: 224px">Filter by ingredients</h6>
+							<hr width="90%">
+							<div class="filter_menu_item">
+								Count&nbsp;
+								<select name="IngredientsCount" id="IngredientsCount">
+									<option id="0" value="0">Unlimited</option>
+									<option id="1" value="1">1 Ingredient</option>
+									<option id="2" value="2">2 Ingredients</option>
+									<option id="3" value="3">3 Ingredients</option>
+									<option id="4" value="4">4 Ingredients</option>
+									<option id="5" value="5">5 Ingredients</option>
+								</select>
+							</div>
 							<hr width="90%">
 							<div class="filter_menu_item">Include</div>
 							<div class="filter_menu_item"><input type="text" id="ingredientsInc1" class="apiGetingredientsSuggestion ui-corner-all"/></div>

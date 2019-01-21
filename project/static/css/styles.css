@@ -409,7 +409,7 @@ img{
 .filter_option{padding:8px;opacity:.9;text-align:center;margin-top:5px;margin-right:12px;cursor:pointer}
 .filter_menu{background:#fff!important;border:1px solid rgba(0,0,0,.2)!important;border-radius:4px!important;box-shadow:0 14px 36px 2px rgba(0,0,0,.15)!important;overflow-y:auto!important;overflow-x:hidden!important;padding:0 5px;white-space:normal!important;display:inline-block!important;visibility:visible!important;height:300px}
 .filter_menu_item{align-items:center;display:flex;height:28px;padding:0 16px;font-size:18px;position:relative;transition:background .15s linear;width:auto;margin-bottom:5px}
-.keyingredient_menu{background-color:#fff;height:480px}
+.keyingredient_menu{background-color:#fff;height:490px}
 .keyingredient_selected{color:#fff;background-color:orange;border:1px solid orange}
 .md-panel-outer-wrapper{left:0;position:absolute;top:0;height:auto;width:auto}
 #md-cover{height:100%;width:100%}
