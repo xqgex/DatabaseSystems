@@ -372,7 +372,7 @@
 							diets.append("<div class=\"filter_menu_item keyingredient_selected\" value=\"any\" style=\"cursor: pointer\">any&nbsp;<span class=\"small_text\">-  Any diet</span></div>");
 							$("#selected_diet").text("any");
 							for (var i = 0; i < data.message.list.length; ++i) {
-								diets.append("<div class=\"filter_menu_item\" value=\"" + data.message.list[i].name + "\" style=\"cursor: pointer\">" + data.message.list[i].name + "&nbsp;<span class=\"small_text\">-  " + data.message.list[i].desc + "</span></div>");
+								diets.append("<div class=\"filter_menu_item\" value=\"" + data.message.list[i].name + "\" style=\"cursor: pointer\">" + data.message.list[i].name + "&nbsp;<span class=\"small_text\">-  " + data.message.list[i].descr + "</span></div>");
 							}
 							prep_from.append("<option id=\"0\" value=\"0\">Any duration</option>");
 							for (var i = 1; i < 18; ++i) {
@@ -626,7 +626,7 @@
 								for (var i = 0; i < data.message.categories.length; ++i) {
 									loop_text = "\n\
 					<div class=\"filter_chip_container\">\n\
-						<div class=\"filter_row\">" + data.message.categories[i].name + "&nbsp;<span class=\"small_text\">" + data.message.categories[i].desc + "</span></div>\n\
+						<div class=\"filter_row\">" + data.message.categories[i].name + "&nbsp;<span class=\"small_text\">" + data.message.categories[i].descr + "</span></div>\n\
 					</div>\n\
 					<div class=\"filter_chip_container\">\n\
 						<div class=\"filter_row\">\n\
