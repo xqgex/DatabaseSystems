@@ -35,20 +35,20 @@ GLOBAL_CALC_RESULTS_LIMITS = 10000
 # 21) def apiRecipeByFiveIngredients(list):			####
 ####################################################################
 def getCursor():
-	# connection = pymysql.connect(host='localhost',
-	# 				port=3305,
-	# 				user='DbMysql14',
-	# 				password='DbMysql14',
-	# 				db='DbMysql14',
-	# 				charset='utf8mb4',
-	# 				cursorclass=pymysql.cursors.DictCursor)
-	connection = pymysql.connect(host='mysqlsrv1.cs.tau.ac.il',
-					port=3306,
+	connection = pymysql.connect(host='localhost',
+					port=3305,
 					user='DbMysql14',
 					password='DbMysql14',
 					db='DbMysql14',
 					charset='utf8mb4',
 					cursorclass=pymysql.cursors.DictCursor)
+	# connection = pymysql.connect(host='mysqlsrv1.cs.tau.ac.il',
+	# 				port=3306,
+	# 				user='DbMysql14',
+	# 				password='DbMysql14',
+	# 				db='DbMysql14',
+	# 				charset='utf8mb4',
+	# 				cursorclass=pymysql.cursors.DictCursor)
 	return connection.cursor()
 
 def apiShowTables():
@@ -85,7 +85,7 @@ def cursorToJSON(cursor):
 		row['prep_time'] = str(row['prep_time'])
 	data = {"results": len(result),
 		"items": result}
-	print("data:\n",data)
+	# print("data:\n",data)
 	return jsonApi(200, data)
 
 def handler(o):
@@ -205,13 +205,16 @@ def apiRecipeByCategory(request): # TODO: Currently not in use
 
 def apiRecipeByDishName(request): # 4
 	name = request.GET['recipe_name'].replace('+',' ')
+	page = request.GET['page']
 	cursor = getCursor()
 	cursor.execute(("""
 		SELECT rec.Id AS id, rec.Name AS name, rec.Prep_Time AS prep_time, rec.Calories AS calories, rec.Url AS url, rec.Image AS image
 		FROM Recipe AS rec
 		WHERE rec.Name like '{0}%'
+		LIMIT 6
+		OFFSET {1}
 	""").format(name))
-	return cursorToJSON(cursor)
+	return cursorToJSON(cursor, page*6)
 
 def apiIngredientsListByRecipiesList(request): # 5
 	if not request.is_ajax():
@@ -257,7 +260,7 @@ def apiIngredientsListByRecipiesList(request): # 5
 
 	data = {"categories": categories}
 
-	print("data:\n",data)
+	# print("data:\n",data)
 	return jsonApi(200, data)
 
 	# data = {"categories": [
@@ -278,21 +281,30 @@ def apiIngredientsListByRecipiesList(request): # 5
 
 	return cursorToJSON(cursor)
 
-def apiMealByNumRecipiesAndTotalTime(request):
+# GET /api/search_meals/?recipe_name=&diet=any&prep_from=0&
+# prep_to=180&ingredients_max=0&ingredients_inc=&ingredients_exc=&
+# sort_by=sort_by_name&sort_order=desc&page=0 HTTP/1.1" 200 30
+
+def apiMealByNumRecipiesAndTotalTimeAndIngList(request):
 	if not request.is_ajax():
 		return jsonApi(300, "Invalid call")
 	numRecipies = request.GET['num_recipes'] # TODO: CHANGE PARAMETER ACCORDING UI
+	valid = (numRecipies >= 2) and (numRecipies <= 5)
+	if not valid:
+		return jsonApi(300, "Invalid num_recipes given")
 	time = request.GET['time']
-	if (numRecipies == 1):
-		return apiOneMealByTotalTime(time)
+	inc_list = request.GET['ingredients_inc']
+	exc_list = request.GET['ingredients_exc']
+	# if (numRecipies == 1):
+	# 	return apiOneMealByTotalTime(time)
 	if (numRecipies == 2):
-		return apiTwoMealsByTotalTime(time)
+		return apiTwoMealsByTotalTimeAndIngList(time, inc_list, exec_list)
 	if (numRecipies == 3):
-		return apiThreeMealsByTotalTime(time)
+		return apiThreeMealsByTotalTimeAndIngList(time, inc_list, exec_list)
 	if (numRecipies == 4):
-		return apiFourMealsByTotalTime(time)
+		return apiFourMealsByTotalTimeAndIngList(time, inc_list, exec_list)
 	if (numRecipies == 5):
-		return apiFiveMealsByTotalTime(time)
+		return apiFiveMealsByTotalTimeAndIngList(time, inc_list, exec_list)
 	return jsonApi(300, "Invalid call")
 
 def apiOneMealByTotalTime(time):
@@ -306,7 +318,8 @@ def apiOneMealByTotalTime(time):
 	""").format(time))
 	return cursorToJSON(cursor)
 
-def apiTwoMealsByTotalTime(time):
+def apiTwoMealsByTotalTimeAndIngList(time, inc_list, exec_list):
+
 	cursor = getCursor()
 	cursor.execute(("""
 	SELECT x.R1_Name, x.R1_Time, x.R1_Url ,x.R1_Image,
@@ -329,7 +342,7 @@ def apiTwoMealsByTotalTime(time):
 	""").format(time, GLOBAL_CALC_RESULTS_LIMITS))
 	return cursorToJSON(cursor)
 
-def apiThreeMealsByTotalTime(time):
+def apiThreeMealsByTotalTime(time, inc_list, exec_list):
 	cursor = getCursor()
 	cursor.execute(("""
 	SELECT x.R1_Name, x.R1_Time, x.R1_Url ,x.R1_Image,
@@ -359,7 +372,7 @@ def apiThreeMealsByTotalTime(time):
 	""").format(time, GLOBAL_CALC_RESULTS_LIMITS))
 	return cursorToJSON(cursor)
 
-def apiFourMealsByTotalTime(time):
+def apiFourMealsByTotalTime(time, inc_list, exec_list):
 	cursor = getCursor()
 	cursor.execute(("""
 	SELECT x.R1_Name, x.R1_Time, x.R1_Url ,x.R1_Image,
@@ -395,7 +408,7 @@ def apiFourMealsByTotalTime(time):
 	""").format(time,GLOBAL_CALC_RESULTS_LIMITS))
 	return cursorToJSON(cursor)
 
-def apiFiveMealsByTotalTime(time):
+def apiFiveMealsByTotalTime(time, inc_list, exec_list):
 	cursor = getCursor()
 	cursor.execute(("""
 	SELECT x.R1_Name, x.R1_Time, x.R1_Url ,x.R1_Image,
@@ -729,7 +742,7 @@ def apiIngredientsSuggestion(request):
 			{"name": "Lemon"},
 			{"name": "Milk"}
 		]}
-	print("data:\n",data)
+	# print("data:\n",data)
 	return jsonApi(200, data)
 
 def apiIngredients(request):
@@ -769,46 +782,94 @@ def apiRecipesSuggestion(request):
 	return jsonApi(200, data)
 
 def apiSearchMeals(request):
+
+	page = request.GET['page']
+	# num_recipes = request.GET['num_recipes']
 	if (request.method != "GET") or (not request.is_ajax()):
 		return jsonApi(300, "Invalid call")
-	data = {"results": 4,
-		"meals": [[
-				{"id": 1, "name": "Balsamic-Glazed Steak Rolls"},
-				{"id": 2, "name": "Mongolian Glazed Steak"},
-				{"id": 3, "name": "Recipe name number 3"},
-				{"id": 4, "name": "Recipe name number 4"}
-			],[
-				{"id": 5, "name": "Recipe name number 5"},
-				{"id": 3, "name": "Recipe name number 3"}
-			],[
-				{"id": 5, "name": "Recipe name number 5"},
-				{"id": 2, "name": "Mongolian Glazed Steak"}
-			],[
-				{"id": 3, "name": "Recipe name number 3"},
-				{"id": 4, "name": "Recipe name number 4"},
-				{"id": 5, "name": "Recipe name number 5"},
-				{"id": 6, "name": "Recipe name number 6"},
-				{"id": 7, "name": "Recipe name number 7"}
-			]
-		]}
+	cursor = getCursor()
+	cursor.execute(("""
+	SELECT Id AS id, Name AS name
+	FROM Recipe
+	LIMIT 30
+	OFFSET {0}
+	""").format(page*30)) # 6*5 per page
+	result = cursor.fetchall()
+	data = {"results": len(result),
+	 "meals": []}
+	for row in result:
+		data['meals'].append([])
 	return jsonApi(200, data)
+
+	# [
+	# 		{"id": 1, "name": "Balsamic-Glazed Steak Rolls"},
+	# 		{"id": 2, "name": "Mongolian Glazed Steak"},
+	# 		{"id": 3, "name": "Recipe name number 3"},
+	# 		{"id": 4, "name": "Recipe name number 4"}
+	# 	],[
+	# 		{"id": 5, "name": "Recipe name number 5"},
+	# 		{"id": 3, "name": "Recipe name number 3"}
+	# 	],[
+	# 		{"id": 5, "name": "Recipe name number 5"},
+	# 		{"id": 2, "name": "Mongolian Glazed Steak"}
+	# 	],[
+	# 		{"id": 3, "name": "Recipe name number 3"},
+	# 		{"id": 4, "name": "Recipe name number 4"},
+	# 		{"id": 5, "name": "Recipe name number 5"},
+	# 		{"id": 6, "name": "Recipe name number 6"},
+	# 		{"id": 7, "name": "Recipe name number 7"}
+	# 	]
+	#
 
 def apiSearchRecipes(request):
 	if (request.method != "GET") or (not request.is_ajax()):
 		return jsonApi(300, "Invalid call")
+	if ('invalid' in request.GET.values()):
+		print("Got invalid parameters on GET call")
+		return jsonApi(300, "Invalid call")
+
+	# PARAMETERS:
+	recipe_name = request.GET['recipe_name']
+	prep_from = request.GET['prep_from']
+	prep_to = request.GET['prep_to']
+	ingredients_max = request.GET['ingredients_max']
+	ingredients_inc = request.GET['ingredients_inc']
+	ingredients_exc = request.GET['ingredients_exc']
+	sort_by = request.GET['sort_by'].replace('sort_by_', '')
+	sort_order = request.GET['sort_order']
+	page = request.GET['page']
+
+	# DEFAULT EXAMPLE
+	# recipe_name=&
+	# prep_from=invalid&
+	# prep_to=invalid&
+	# ingredients_max=0&
+	# ingredients_inc=&
+	# ingredients_exc=&
+	# sort_by=sort_by_name&
+	# sort_order=desc&
+	# page=0
+
 	if (request.GET['recipe_name'] != ''):
+		print("Got request for recipe by dish name")
 		return apiRecipeByDishName(request)
 	if (request.GET['ingredients_max'] != '0'):
+		print("Got request for recipe by num ingredients")
 		return apiRecipeByNumOfIngredients(request)
 	if (request.GET['prep_to'] != '180'):
+		print("Got request for recipe by max prep time")
 		return apiRecipeByMaxPrepTime(request)
 	if (request.GET['diet'] != 'any'):
+		print("Got request for recipe by diet")
 		return apiRecipeByDiet(request)
 	# if ('num_recipes' in request.GET and 'time' in request.GET): # TODO: CHANGE PARAMETER ACCORDING UI
 	# 	return apiMealByNumRecipiesAndTotalTime(request)
 	if (request.GET['ingredients_inc'] != ''):
+		print("Got request for recipe by ing list")
 		return apiRecipeByIngredientList(request)
 	if ('selected_recipes' in request.GET):
+		print("Got request for ing list by recipes list")
 		return apiIngredientsListByRecipiesList(request)
 	else:
+		print("Got request for default response")
 		return apiDefaultResponse(request)
