@@ -4,6 +4,7 @@ import mysql.connector
 import pymysql.cursors
 from project.views import jsonApi
 import datetime
+import copy
 
 GLOBAL_RESULTS_LIMIT = 100
 GLOBAL_CALC_RESULTS_LIMITS = 10000
