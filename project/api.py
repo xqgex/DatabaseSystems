@@ -727,12 +727,20 @@ def apiRecipeByFiveIngredients(list):
 def apiGetDiets(request):
 	if (request.method != "GET") or (not request.is_ajax()):
 		return jsonApi(300, "Invalid call")
-	data = {"list": [
-			{"name": "balanced",		"desc": "Protein/Fat/Carb values in 15/35/50 ratio"},
-			{"name": "high-protein",	"desc": "More then 50% of total calories from proteins"},
-			{"name": "alcohol-free",	"desc": "No alcohol used or contained"}
-		]}
+	cursor = getCursor()
+	cursor.execute("""
+	SELECT Name as name, Description as descr
+	FROM Diet
+	""")
+	data = {"list": cursor.fetchall()}
 	return jsonApi(200, data)
+	#
+	# data = {"list": [
+	# 		{"name": "balanced",		"desc": "Protein/Fat/Carb values in 15/35/50 ratio"},
+	# 		{"name": "high-protein",	"desc": "More then 50% of total calories from proteins"},
+	# 		{"name": "alcohol-free",	"desc": "No alcohol used or contained"}
+	# 	]}
+	# return jsonApi(200, data)
 
 def apiIngredientsSuggestion(request):
 	if (request.method != "GET") or (not request.is_ajax()):
@@ -820,9 +828,6 @@ def apiSearchMeals(request):
 	# 		{"id": 7, "name": "Recipe name number 7"}
 	# 	]
 	#
-
-def apiGetRecipes(request):
-	return apiSearchRecipes(request)
 
 def apiSearchRecipes(request):
 	if (request.method != "GET") or (not request.is_ajax()):
