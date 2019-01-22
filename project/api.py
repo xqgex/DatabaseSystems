@@ -209,7 +209,7 @@ def apiRecipeByDishName(request): # 4
 	cursor.execute(("""
 		SELECT rec.Id AS id, rec.Name AS name, rec.Prep_Time AS prep_time, rec.Calories AS calories, rec.Url AS url, rec.Image AS image
 		FROM Recipe AS rec
-		WHERE rec.Name = '{0}'
+		WHERE rec.Name like '{0}%'
 	""").format(name))
 	return cursorToJSON(cursor)
 
