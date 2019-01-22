@@ -838,7 +838,7 @@ def apiSearchRecipes(request):
 	sort_by = request.GET['sort_by'].replace('sort_by_', '')
 	sort_order = request.GET['sort_order']
 	page = request.GET['page']
-
+	recipes_per_meal = request.GET['recipes_per_meal']
 	# DEFAULT EXAMPLE
 	# recipe_name=&
 	# prep_from=invalid&
