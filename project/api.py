@@ -231,26 +231,28 @@ def apiIngredientsListByRecipiesList(request): # 5
 	categories = []
 	cur_cat_name = result[0]['name']
 	cur_cat_desc = result[0]['descr']
-	list = []
+	cur_list = []
 	# categories = [{"name": ,
 	# 			   "desc": ,
 	# 			   "list": list}]
 
 	for row in result:
 		if row['name'] == cur_cat_name:
-			list.append(row['ing_name'])
+			cur_list.append(row['ing_name'])
 		else:
+			list_copy = list(cur_list)
 			categories.append({"name": cur_cat_name,
 						   	   "desc": cur_cat_desc,
-						       "list": list.copy()})
-			list = []
+						       "list": list_copy})
+			cur_list = []
 			cur_cat_name = row['name']
 			cur_cat_desc = row['descr']
-			list.append(row['ing_name'])
+			cur_list.append(row['ing_name'])
 
+	list_copy = list(cur_list)
 	categories.append({"name": cur_cat_name,
 				   	   "desc": cur_cat_desc,
-				       "list": list.copy()})
+				       "list": list_copy})
 
 	data = {"categories": categories}
 
