@@ -47,6 +47,7 @@ def getCursor():
 					user='DbMysql14',
 					password='DbMysql14',
 					db='DbMysql14',
+					charset='utf8mb4',
 					cursorclass=pymysql.cursors.DictCursor)
 	return connection.cursor()
 
