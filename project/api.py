@@ -821,6 +821,9 @@ def apiSearchMeals(request):
 	# 	]
 	#
 
+def apiGetRecipes(request):
+	return apiSearchRecipes(request)
+
 def apiSearchRecipes(request):
 	if (request.method != "GET") or (not request.is_ajax()):
 		return jsonApi(300, "Invalid call")
@@ -828,17 +831,91 @@ def apiSearchRecipes(request):
 		print("Got invalid parameters on GET call")
 		return jsonApi(300, "Invalid call")
 
+# recipe_name=&diet=any&prep_from=0&prep_to=180&ingredients_max=0&ingredients_inc=&ingredients_exc=&recipes_per_meal=5&sort_by=sort_by_name&sort_order=desc&page=0
+	# EXAMPLE: recipe_name=&prep_from=invalid&prep_to=invalid&ingredients_max=0&ingredients_inc=&ingredients_exc=&sort_by=sort_by_name&sort_order=desc&page=0
 	# PARAMETERS:
 	recipe_name = request.GET['recipe_name']
 	prep_from = request.GET['prep_from']
 	prep_to = request.GET['prep_to']
 	ingredients_max = request.GET['ingredients_max']
-	ingredients_inc = request.GET['ingredients_inc']
-	ingredients_exc = request.GET['ingredients_exc']
+	ingredients_inc = request.GET['ingredients_inc'].split("+")
+	ingredients_exc = request.GET['ingredients_exc'].split("+")
 	sort_by = request.GET['sort_by'].replace('sort_by_', '')
 	sort_order = request.GET['sort_order']
 	page = request.GET['page']
 	recipes_per_meal = request.GET['recipes_per_meal']
+	diet = request.GET['diet']
+	# print("params: ",recipe_name, " ",diet, " ", prep_from, " ", prep_to, " ", ingredients_inc, " ", ingredients_exc, " ", page)
+	query = recipe_query(recipe_name, diet, prep_from, prep_to, ingredients_inc, ingredients_exc, page, sort_by, sort_order)
+	print("query:\n",query)
+	cursor = getCursor()
+	cursor.execute(query)
+	result = cursor.fetchall()
+	for row in result:
+		row['prep_time'] = str(row['prep_time'])
+	data = {"results": len(result),
+		"items": result}
+	# print("data:\n",data)
+	return jsonApi(200, data)
+
+# recipe_name=&diet=any&prep_from=0&prep_to=180&ingredients_max=0&ingredients_inc=&ingredients_exc=&recipes_per_meal=5&sort_by=sort_by_name&sort_order=desc&page=0
+#
+
+def recipe_query(name_string, diet_string, prep_time_lower_bound, prep_time_upper_bound, ingr_in, ingr_out,page, sort_by, sort_order):
+    sql_start = "SELECT Recipe.Id AS id, Recipe.Name AS name, Recipe.Prep_Time AS prep_time, Recipe.Calories AS calories, Recipe.Url AS url, Recipe.Image AS image \nFROM Recipe "
+    lim_off = "\nLIMIT 6 OFFSET %d"%(int(page)*6)
+    sort = "\nORDER BY %s %s"%(sort_by, sort_order)
+	#conditions
+    first_condition = True
+    if name_string != "":
+        sql_condition = "\nWHERE LOWER(Recipe.Name) LIKE LOWER('%s%%')"%(name_string)
+        first_condition = False
+    if diet_string != "any":
+        sql_start = sql_start + ", Diet, Recipe_Diet "
+        diet_conds = "Recipe.Id = Recipe_Diet.Recipe_Id and Recipe_Diet.Diet_Id = Diet.Id and Diet.Name = '%s'\n"%(diet_string)
+        if first_condition:
+            sql_condition = "\nWHERE " + diet_conds
+            first_condition = False
+        else:
+            sql_condition = sql_condition + " and " + diet_conds
+    if prep_time_lower_bound != "0":
+        prep_lower_conds = "Recipe.Prep_Time > %s"%(prep_time_lower_bound)
+        if first_condition:
+            sql_condition = "\nWHERE " + prep_lower_conds
+            first_condition = False
+        else:
+            sql_condition = sql_condition + " and " + prep_lower_conds
+    if prep_time_upper_bound != "180":
+        prep_upper_conds = "Recipe.Prep_Time < %s"%(prep_time_upper_bound)
+        if first_condition:
+            sql_condition = "\nWHERE " + prep_upper_conds
+            first_condition = False
+        else:
+            sql_condition = sql_condition + " and " + prep_upper_conds
+    if ingr_in != ['']:
+        ingr_in_conds = ""
+        for ing in ingr_in:
+            ingr_in_conds = ingr_in_conds + "and Recipe.Id = ANY(SELECT Recipe.Id FROM Recipe, Recipe_Ingredient, Ingredient WHERE Recipe.Id = Recipe_Ingredient.Recipe_Id and Recipe_Ingredient.Ingredient_Id = Ingredient.Id and LOWER(Ingredient.Name) LIKE LOWER('%s%%'))"%(ing)
+        if first_condition:
+            sql_condition = "\nWHERE " + ingr_in_conds[4:]
+            first_condition = False
+        else:
+            sql_condition = sql_condition + " " + ingr_in_conds
+    if ingr_out != ['']:
+        sub_query = ""
+        for ing in ingr_out:
+            sub_query = sub_query + " or LOWER(Ingredient.Name) LIKE LOWER('%s%%')"%(ing)
+        ingr_out_conds = "Recipe.Id <> ALL(SELECT Recipe.Id FROM Recipe, Recipe_Ingredient, Ingredient WHERE Recipe.Id = Recipe_Ingredient.Recipe_Id and Recipe_Ingredient.Ingredient_Id = Ingredient.Id and (%s))"%(sub_query[4:])
+        if first_condition:
+            sql_condition = "\nWHERE " + ingr_out_conds
+            first_condition = False
+        else:
+            sql_condition = sql_condition + " \nand " + ingr_out_conds
+    if first_condition:
+        return sql_start + sort + lim_off
+    if int(page) > 0:
+        return sql_start + sql_condition + sort + lim_off
+    return sql_start + sql_condition + sort + lim_off
 	# DEFAULT EXAMPLE
 	# recipe_name=&
 	# prep_from=invalid&
@@ -849,27 +926,37 @@ def apiSearchRecipes(request):
 	# sort_by=sort_by_name&
 	# sort_order=desc&
 	# page=0
+	#
+	# if (request.GET['recipe_name'] != ''):
+	# 	print("Got request for recipe by dish name")
+	# 	return apiRecipeByDishName(request)
+	# if (request.GET['ingredients_max'] != '0'):
+	# 	print("Got request for recipe by num ingredients")
+	# 	return apiRecipeByNumOfIngredients(request)
+	# if (request.GET['prep_to'] != '180'):
+	# 	print("Got request for recipe by max prep time")
+	# 	return apiRecipeByMaxPrepTime(request)
+	# if (request.GET['diet'] != 'any'):
+	# 	print("Got request for recipe by diet")
+	# 	return apiRecipeByDiet(request)
+	# # if ('num_recipes' in request.GET and 'time' in request.GET): # TODO: CHANGE PARAMETER ACCORDING UI
+	# # 	return apiMealByNumRecipiesAndTotalTime(request)
+	# if (request.GET['ingredients_inc'] != ''):
+	# 	print("Got request for recipe by ing list")
+	# 	return apiRecipeByIngredientList(request)
+	# if ('selected_recipes' in request.GET):
+	# 	print("Got request for ing list by recipes list")
+	# 	return apiIngredientsListByRecipiesList(request)
+	# else:
+	# 	print("Got request for default response")
+	# 	return apiDefaultResponse(request)
 
-	if (request.GET['recipe_name'] != ''):
-		print("Got request for recipe by dish name")
-		return apiRecipeByDishName(request)
-	if (request.GET['ingredients_max'] != '0'):
-		print("Got request for recipe by num ingredients")
-		return apiRecipeByNumOfIngredients(request)
-	if (request.GET['prep_to'] != '180'):
-		print("Got request for recipe by max prep time")
-		return apiRecipeByMaxPrepTime(request)
-	if (request.GET['diet'] != 'any'):
-		print("Got request for recipe by diet")
-		return apiRecipeByDiet(request)
-	# if ('num_recipes' in request.GET and 'time' in request.GET): # TODO: CHANGE PARAMETER ACCORDING UI
-	# 	return apiMealByNumRecipiesAndTotalTime(request)
-	if (request.GET['ingredients_inc'] != ''):
-		print("Got request for recipe by ing list")
-		return apiRecipeByIngredientList(request)
-	if ('selected_recipes' in request.GET):
-		print("Got request for ing list by recipes list")
-		return apiIngredientsListByRecipiesList(request)
-	else:
-		print("Got request for default response")
-		return apiDefaultResponse(request)
+	# """INPUT:
+	# name_string - string or ""
+	# diet_string - string or ""
+	# prep_time_lower_bound - format "HH:MM:SS" or ""
+	# prep_time_upper_bound - format "HH:MM:SS" or ""
+	# ingr_in - list of ingredients to be included or []
+	# ing_out - list of ingredients to be excluded or []
+	# OUTPUT: QUERY
+	# """
