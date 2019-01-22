@@ -227,10 +227,7 @@
 				$(this).parent().find(".filter_menu_item").removeClass("keyingredient_selected");
 				$(this).addClass("keyingredient_selected");
 				$("#selected_diet").text($(this).attr("value"));
-				$("#md-panel-prep .md-panel").css("left", ($("#prep_time_filter").position().left+390) + "px");
-				$("#md-panel-prep .md-panel").css("top", ($("#prep_time_filter").position().top+160) + "px");
-				$("#md-panel-ingredient .md-panel").css("left", ($("#ingredient_filter").position().left+390) + "px");
-				$("#md-panel-ingredient .md-panel").css("top", ($("#ingredient_filter").position().top+160) + "px");
+				updateBoxsposition();
 			});
 			$("#PrepFrom").change(function () {
 				var prep_from = $(this).find(":selected")[0].id;
@@ -246,13 +243,11 @@
 				}
 				prep_to.append("<option id=\"180\" value=\"180\" selected>More then 3 hours</option>");
 				$("#selected_prep").text($(this).find(":selected")[0].text + " - " + $("#PrepTo").find(":selected")[0].text);
-				$("#md-panel-ingredient .md-panel").css("left", ($("#ingredient_filter").position().left+390) + "px");
-				$("#md-panel-ingredient .md-panel").css("top", ($("#ingredient_filter").position().top+160) + "px");
+				updateBoxsposition();
 			});
 			$("#PrepTo").change(function () {
 				$("#selected_prep").text($(this).find(":selected")[0].text + " - " + $("#PrepTo").find(":selected")[0].text);
-				$("#md-panel-ingredient .md-panel").css("left", ($("#ingredient_filter").position().left+390) + "px");
-				$("#md-panel-ingredient .md-panel").css("top", ($("#ingredient_filter").position().top+160) + "px");
+				updateBoxsposition();
 			});
 			$("#apiGetRecipesSuggestion").on('input', function() {
 				if (user_filter_text == true && $(this).val() == "") {
@@ -377,19 +372,22 @@
 								prep_from.append("<option id=\"" + i*10 + "\" value=\"" + i*10 + "\">" + int2duration(i*10) + "</option>");
 							}
 							prep_from.append("<option id=\"180\" value=\"180\">More then 3 hours</option>");
-							$("#md-panel-search .md-panel").css("left", ($("#search_filter").position().left+390) + "px");
-							$("#md-panel-search .md-panel").css("top", ($("#search_filter").position().top+160) + "px");
-							$("#md-panel-diet .md-panel").css("left", ($("#diet_filter").position().left+390) + "px");
-							$("#md-panel-diet .md-panel").css("top", ($("#diet_filter").position().top+160) + "px");
-							$("#md-panel-prep .md-panel").css("left", ($("#prep_time_filter").position().left+390) + "px");
-							$("#md-panel-prep .md-panel").css("top", ($("#prep_time_filter").position().top+160) + "px");
-							$("#md-panel-ingredient .md-panel").css("left", ($("#ingredient_filter").position().left+390) + "px");
-							$("#md-panel-ingredient .md-panel").css("top", ($("#ingredient_filter").position().top+160) + "px");
+							updateBoxsposition();
 							prep_from.change();
 							diet_not_loaded = false;
 						}
 					}
 				});
+			}
+			function updateBoxsposition() {
+				$("#md-panel-search .md-panel").css("left", ($("#search_filter").position().left+390) + "px");
+				$("#md-panel-search .md-panel").css("top", ($("#search_filter").position().top+160) + "px");
+				$("#md-panel-diet .md-panel").css("left", ($("#diet_filter").position().left+390) + "px");
+				$("#md-panel-diet .md-panel").css("top", ($("#diet_filter").position().top+160) + "px");
+				$("#md-panel-prep .md-panel").css("left", ($("#prep_time_filter").position().left+390) + "px");
+				$("#md-panel-prep .md-panel").css("top", ($("#prep_time_filter").position().top+160) + "px");
+				$("#md-panel-ingredient .md-panel").css("left", ($("#ingredient_filter").position().left+390) + "px");
+				$("#md-panel-ingredient .md-panel").css("top", ($("#ingredient_filter").position().top+160) + "px");
 			}
 			function ClearMeals() {
 				$("#recipes-list").empty();
