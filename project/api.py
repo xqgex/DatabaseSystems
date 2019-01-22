@@ -144,7 +144,7 @@ def apiRecipeByNumOfIngredients(request):
 	ON y.rec_name = recipe.Name
 	) z
 	WHERE rec_ing_num = '{0}'
-	LIMIT '{1}'
+	LIMIT {1}
 	""".format(num, GLOBAL_RESULTS_LIMIT))
 	cursor.execute(command)
 	return cursorToJSON(cursor)
@@ -164,8 +164,7 @@ def apiRecipeByDiet(request): # 3
 	diet = request.GET['diet'].replace('+',' ')
 	cursor = getCursor()
 	cursor.execute(("""
-		SELECT rec.Id AS id, rec.Name AS name, rec.Prep_Time AS rec.Url AS url, rec.Image AS image
-		rec.Calories, rec.Url, rec.Image
+		SELECT rec.Id AS id, rec.Name AS name, rec.Prep_Time AS prep_time, rec.Calories as calories, rec.Url AS url, rec.Image AS image
 		FROM Recipe AS rec
 		JOIN Recipe_Diet AS rec_diet
 		ON rec_diet.Recipe_Id = rec.Id
@@ -219,12 +218,60 @@ def apiIngredientsListByRecipiesList(request): # 5
 	recipesList += ["" for x in range(5-len(recipesList))]
 	cursor = getCursor()
 	cursor.execute(("""
-	SELECT DISTINCT Ingredient.Name AS name
-	FROM Ingredient, Recipe, Recipe_Ingredient
+	SELECT DISTINCT Ingredient.Name AS ing_name, Category.Name as name, Category.Description as descr
+	FROM Ingredient, Recipe, Recipe_Ingredient, Category
 	WHERE Recipe.Id = Recipe_Ingredient.Recipe_Id
 	and Ingredient.Id = Recipe_Ingredient.Ingredient_Id
-	and (Recipe.Id = {0} OR Recipe.Id = {1} OR Recipe.Id = {2} OR Recipe.Id = {3} OR Recipe.Id = {4})
+	and (Recipe.Id = '{0}' OR Recipe.Id = '{1}' OR Recipe.Id = '{2}' OR Recipe.Id = '{3}' OR Recipe.Id = '{4}')
+	order by Category.Name
 	""").format(recipesList[0], recipesList[1], recipesList[2], recipesList[3], recipesList[4]))
+
+	result = cursor.fetchall()
+	categories = []
+	cur_cat_name = result[0]['name']
+	cur_cat_desc = result[0]['descr']
+	list = []
+	# categories = [{"name": ,
+	# 			   "desc": ,
+	# 			   "list": list}]
+
+	for row in result:
+		if row['name'] == cur_cat_name:
+			list.append(row['ing_name'])
+		else:
+			categories.append({"name": cur_cat_name,
+						   	   "desc": cur_cat_desc,
+						       "list": list.copy()})
+			list = []
+			cur_cat_name = row['name']
+			cur_cat_desc = row['descr']
+			list.append(row['ing_name'])
+
+	categories.append({"name": cur_cat_name,
+				   	   "desc": cur_cat_desc,
+				       "list": list.copy()})
+
+	data = {"categories": categories}
+
+	print("data:\n",data)
+	return jsonApi(200, data)
+
+	# data = {"categories": [
+	# 		{
+	# 			"name": "Sweets",
+	# 			"desc": "Sweet products, Candies and Sugar",
+	# 			"list": ["Sweet Ingredients #1", "Sweet Ingredients #2", "Sweet Ingredients #3"]
+	# 		}, {
+	# 			"name": "Vegetable",
+	# 			"desc": "Vegetable and Greens",
+	# 			"list": ["Vegetable Ingredients #1", "Vegetable Ingredients #2", "Vegetable Ingredients #3", "Vegetable Ingredients #4"]
+	# 		}, {
+	# 			"name": "Cooking & Baking",
+	# 			"desc": "Cooking and Baking products - oils, flours…",
+	# 			"list": ["Cooking Ingredients #1", "Cooking Ingredients #2"]
+	# 		}
+	# 	]}
+
 	return cursorToJSON(cursor)
 
 def apiMealByNumRecipiesAndTotalTime(request):
@@ -682,24 +729,26 @@ def apiIngredientsSuggestion(request):
 	return jsonApi(200, data)
 
 def apiIngredients(request):
-	if (request.method != "GET") or (not request.is_ajax()):
-		return jsonApi(300, "Invalid call")
-	data = {"categories": [
-			{
-				"name": "Sweets",
-				"desc": "Sweet products, Candies and Sugar",
-				"list": ["Sweet Ingredients #1", "Sweet Ingredients #2", "Sweet Ingredients #3"]
-			}, {
-				"name": "Vegetable",
-				"desc": "Vegetable and Greens",
-				"list": ["Vegetable Ingredients #1", "Vegetable Ingredients #2", "Vegetable Ingredients #3", "Vegetable Ingredients #4"]
-			}, {
-				"name": "Cooking & Baking",
-				"desc": "Cooking and Baking products - oils, flours…",
-				"list": ["Cooking Ingredients #1", "Cooking Ingredients #2"]
-			}
-		]}
-	return jsonApi(200, data)
+	return(apiIngredientsListByRecipiesList(request))
+
+	# if (request.method != "GET") or (not request.is_ajax()):
+	# 	return jsonApi(300, "Invalid call")
+	# data = {"categories": [
+	# 		{
+	# 			"name": "Sweets",
+	# 			"desc": "Sweet products, Candies and Sugar",
+	# 			"list": ["Sweet Ingredients #1", "Sweet Ingredients #2", "Sweet Ingredients #3"]
+	# 		}, {
+	# 			"name": "Vegetable",
+	# 			"desc": "Vegetable and Greens",
+	# 			"list": ["Vegetable Ingredients #1", "Vegetable Ingredients #2", "Vegetable Ingredients #3", "Vegetable Ingredients #4"]
+	# 		}, {
+	# 			"name": "Cooking & Baking",
+	# 			"desc": "Cooking and Baking products - oils, flours…",
+	# 			"list": ["Cooking Ingredients #1", "Cooking Ingredients #2"]
+	# 		}
+	# 	]}
+	# return jsonApi(200, data)
 
 def apiRecipesSuggestion(request):
 	if (request.method != "GET") or (not request.is_ajax()):
