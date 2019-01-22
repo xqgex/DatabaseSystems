@@ -34,19 +34,19 @@ GLOBAL_CALC_RESULTS_LIMITS = 10000
 # 21) def apiRecipeByFiveIngredients(list):			####
 ####################################################################
 def getCursor():
-	connection = pymysql.connect(host='localhost',
-					port=3305,
-					user='DbMysql14',
-					password='DbMysql14',
-					db='DbMysql14',
-					charset='utf8mb4',
-					cursorclass=pymysql.cursors.DictCursor)
-	# connection = pymysql.connect(host='delta-tomcat-vm.cs.tau.ac.il',
-	# 				port=40777,
+	# connection = pymysql.connect(host='localhost',
+	# 				port=3305,
 	# 				user='DbMysql14',
 	# 				password='DbMysql14',
 	# 				db='DbMysql14',
+	# 				charset='utf8mb4',
 	# 				cursorclass=pymysql.cursors.DictCursor)
+	connection = pymysql.connect(host='mysqlsrv1.cs.tau.ac.il',
+					port=3306,
+					user='DbMysql14',
+					password='DbMysql14',
+					db='DbMysql14',
+					cursorclass=pymysql.cursors.DictCursor)
 	return connection.cursor()
 
 def apiShowTables():
