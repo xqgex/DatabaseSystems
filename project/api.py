@@ -220,18 +220,29 @@ def apiIngredientsListByRecipiesList(request): # 5
 	if not request.is_ajax():
 		return jsonApi(300, "Invalid call")
 	recipesList = request.GET['selected_recipes'].replace("recipe_n_", "").split("+")
-	recipesList += ["" for x in range(5-len(recipesList))]
+	query_completion = "( "
+	for i in range (len(recipesList)-1):
+		query_completion += "rec.Id = %s OR "%(recipesList[i])
+	query_completion += "rec.Id = %s )"%(recipesList[len(recipesList)-1])
+	print("quer-comp:\n",query_completion)
+	##recipesList += ["" for x in range(5-len(recipesList))]
 	cursor = getCursor()
-	cursor.execute(("""
-	SELECT DISTINCT Ingredient.Name AS ing_name, Category.Name as name, Category.Description as descr
-	FROM Ingredient, Recipe, Recipe_Ingredient, Category
-	WHERE Recipe.Id = Recipe_Ingredient.Recipe_Id
-	and Ingredient.Id = Recipe_Ingredient.Ingredient_Id
-	and (Recipe.Id = '{0}' OR Recipe.Id = '{1}' OR Recipe.Id = '{2}' OR Recipe.Id = '{3}' OR Recipe.Id = '{4}')
-	order by Category.Name
-	""").format(recipesList[0], recipesList[1], recipesList[2], recipesList[3], recipesList[4]))
-
+	query = ("""
+	SELECT DISTINCT ing.Name AS ing_name, cat.Name as name, cat.Description as descr
+	FROM Ingredient as ing
+	INNER JOIN Category as cat
+	ON ing.Category_Id = cat.Id
+	INNER JOIN Recipe_Ingredient as rec_ing
+	ON ing.Id = rec_ing.Ingredient_Id
+	INNER JOIN Recipe as rec
+	ON rec.Id = rec_ing.Recipe_Id
+	WHERE {0}
+	order by cat.Name
+	""").format(query_completion)
+	print("query:\n",query)
+	cursor.execute(query)
 	result = cursor.fetchall()
+	print("result:\n",result)
 	categories = []
 	cur_cat_name = result[0]['name']
 	cur_cat_desc = result[0]['descr']
@@ -257,8 +268,8 @@ def apiIngredientsListByRecipiesList(request): # 5
 	categories.append({"name": cur_cat_name,
 				   	   "desc": cur_cat_desc,
 				       "list": list_copy})
-
 	data = {"categories": categories}
+	print("data:\n",data)
 
 	# print("data:\n",data)
 	return jsonApi(200, data)
@@ -745,13 +756,26 @@ def apiGetDiets(request):
 def apiIngredientsSuggestion(request):
 	if (request.method != "GET") or (not request.is_ajax()):
 		return jsonApi(300, "Invalid call")
-	data = {"suggestions": [
-			{"name": "Apple"},
-			{"name": "Lemon"},
-			{"name": "Milk"}
-		]}
-	# print("data:\n",data)
+	q = request.GET['q']
+	cursor = getCursor()
+	cursor.execute(("""
+	Select ing.Name AS name
+	From Ingredient as ing
+	Where ing.Name like '{0}%'
+	""").format(q))
+	rv = cursor.fetchall()
+	data = {"suggestions": rv}
 	return jsonApi(200, data)
+
+	# if (request.method != "GET") or (not request.is_ajax()):
+	# 	return jsonApi(300, "Invalid call")
+	# data = {"suggestions": [
+	# 		{"name": "Apple"},
+	# 		{"name": "Lemon"},
+	# 		{"name": "Milk"}
+	# 	]}
+	# # print("data:\n",data)
+	# return jsonApi(200, data)
 
 def apiIngredients(request):
 	return(apiIngredientsListByRecipiesList(request))
@@ -852,7 +876,7 @@ def apiSearchRecipes(request):
 	diet = request.GET['diet']
 	# print("params: ",recipe_name, " ",diet, " ", prep_from, " ", prep_to, " ", ingredients_inc, " ", ingredients_exc, " ", page)
 	query = recipe_query(recipe_name, diet, prep_from, prep_to, ingredients_inc, ingredients_exc, page, sort_by, sort_order)
-	print("query:\n",query)
+	# print("query:\n",query)
 	cursor = getCursor()
 	cursor.execute(query)
 	result = cursor.fetchall()
