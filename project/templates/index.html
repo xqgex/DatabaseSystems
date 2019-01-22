@@ -49,7 +49,8 @@
 				"search_filter": "#md-panel-search",
 				"diet_filter": "#md-panel-diet",
 				"prep_time_filter": "#md-panel-prep",
-				"ingredient_filter": "#md-panel-ingredient"
+				"ingredient_filter": "#md-panel-ingredient",
+				"recipe_per_meal_filter": "#md-panel-recipe-per-meal"
 			};
 			$("#noscript").attr("style","display: none;"),
 			$("#fullpage").fullpage({
@@ -356,6 +357,12 @@
 				$.ajax({
 					url: "/api/get_diets/",
 					dataType: "json",
+					async: false, // async!!!
+					cache: true,
+					timeout: 1500, // 1.5 second timeout
+					error: function() {
+						return true;
+					},
 					success: function(data) {
 						if (data.status == 200) {
 							var diets = $("#md-container-diets");
@@ -388,6 +395,8 @@
 				$("#md-panel-prep .md-panel").css("top", ($("#prep_time_filter").position().top+160) + "px");
 				$("#md-panel-ingredient .md-panel").css("left", ($("#ingredient_filter").position().left+390) + "px");
 				$("#md-panel-ingredient .md-panel").css("top", ($("#ingredient_filter").position().top+160) + "px");
+				$("#md-panel-recipe-per-meal .md-panel").css("left", ($("#recipe_per_meal_filter").position().left+390) + "px");
+				$("#md-panel-recipe-per-meal .md-panel").css("top", ($("#recipe_per_meal_filter").position().top+160) + "px");
 			}
 			function ClearMeals() {
 				$("#recipes-list").empty();
@@ -396,6 +405,9 @@
 				}
 				if ($("#diet_filter").hasClass("hide_me")) {
 					$("#diet_filter").removeClass("hide_me");
+				}
+				if (!$("#recipe_per_meal_filter").hasClass("hide_me")) {
+					$("#recipe_per_meal_filter").addClass("hide_me");
 				}
 				page_number = 0;
 				search_results_count = 0;
@@ -411,6 +423,9 @@
 				}
 				if (!$("#diet_filter").hasClass("hide_me")) {
 					$("#diet_filter").addClass("hide_me");
+				}
+				if ($("#recipe_per_meal_filter").hasClass("hide_me")) {
+					$("#recipe_per_meal_filter").removeClass("hide_me");
 				}
 				page_number = 0;
 				search_results_count = 0;
@@ -553,6 +568,7 @@
 				}
 				ingredients_inc = [...new Set(ingredients_inc)];
 				ingredients_exc = [...new Set(ingredients_exc)];
+				var recipes_per_meal = $("#RecipesPerMealCount").find(":selected")[0].id;
 				var sort_by = $("#bottom_row_content .sort_selected")[0].id;
 				var sort_order;
 				if ($("#"+sort_by).find("i").hasClass("fa-chevron-circle-down")) {
@@ -578,6 +594,7 @@
 						ingredients_max: ingredients_max,
 						ingredients_inc: ingredients_inc.join("+"),
 						ingredients_exc: ingredients_exc.join("+"),
+						recipes_per_meal: recipes_per_meal,
 						sort_by: sort_by,
 						sort_order: sort_order,
 						page: page_number},
@@ -690,6 +707,7 @@
 						<div class="filter_option" id="diet_filter">Diet <span id="selected_diet" class="small_text"></span></div>
 						<div class="filter_option" id="prep_time_filter">Meal preparation time <span id="selected_prep" class="small_text"></span></div>
 						<div class="filter_option" id="ingredient_filter">Ingredient</div>
+						<div class="filter_option" id="recipe_per_meal_filter">Recipes per meal</div>
 					</div>
 				</div>
 				<div class="row clearfix" id="recipes-content-container">
@@ -741,6 +759,7 @@
 					</div>
 					<div class="_md-panel-focus-trap"></div>
 				</div>
+<!--				md-panel-recipe-per-meal TODO TODO TODO -->
 				<div class="md-panel-outer-wrapper _md-panel-hidden" id="md-panel-prep"> 
 					<div class="_md-panel-focus-trap"></div>
 					<div class="md-panel" style="left: 560px;">
@@ -794,6 +813,26 @@
 							<div class="filter_menu_item"><input type="text" id="ingredientsExc3" class="apiGetingredientsSuggestion ui-corner-all"/></div>
 							<div class="filter_menu_item"><input type="text" id="ingredientsExc4" class="apiGetingredientsSuggestion ui-corner-all"/></div>
 							<div class="filter_menu_item"><input type="text" id="ingredientsExc5" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+						</div>
+						<div class="md-ok"><button class="md-button" type="button" style="width: 100%;padding: 10px;">Confirm</button></div>
+					</div>
+					<div class="_md-panel-focus-trap"></div>
+				</div>
+				<div class="md-panel-outer-wrapper _md-panel-hidden" id="md-panel-recipe-per-meal"> 
+					<div class="_md-panel-focus-trap"></div>
+					<div class="md-panel" style="left: 920;">
+						<div class="keyingredient_menu filter_menu">
+							<h6 class="md-subhead" style="min-width: 224px">Recipes per meal</h6>
+							<hr width="90%">
+							<div class="filter_menu_item">
+								Count&nbsp;
+								<select name="RecipesPerMealCount" id="RecipesPerMealCount">
+									<option id="2" value="2">2 Recipes</option>
+									<option id="3" value="3">3 Recipes</option>
+									<option id="4" value="4">4 Recipes</option>
+									<option id="5" value="5" selected>5 Recipes</option>
+								</select>
+							</div>
 						</div>
 						<div class="md-ok"><button class="md-button" type="button" style="width: 100%;padding: 10px;">Confirm</button></div>
 					</div>
