@@ -357,6 +357,12 @@
 				$.ajax({
 					url: "/api/get_diets/",
 					dataType: "json",
+					async: false, // async!!!
+					cache: true,
+					timeout: 1500, // 1.5 second timeout
+					error: function() {
+						return true;
+					},
 					success: function(data) {
 						if (data.status == 200) {
 							var diets = $("#md-container-diets");
