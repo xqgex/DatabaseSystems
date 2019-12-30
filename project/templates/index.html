@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<html>
+<head>
+	{% block title %}<title>Home Page</title>{% endblock %}
+	<meta charset="utf-8">
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
+	<meta http-equiv="Pragma" content="no-cache"/>
+	<meta http-equiv="Expires" content="0"/>
+	{% load static %}
+	<link rel="icon" href="{% static 'images/favicon.ico' %}" type="image/x-icon"/>
+	<link rel="stylesheet" href="{% static 'css/styles.css' %}">
+	<link rel="stylesheet" href="{% static 'css/jquery.fullPage.css' %}">
+	<link rel="stylesheet" href="{% static 'css/jquery-ui.min.css' %}">
+	<link rel="stylesheet" href="{% static 'css/jquery-ui.structure.min.css' %}">
+	<link rel="stylesheet" href="{% static 'css/jquery-ui.theme.min.css' %}">
+	<link rel="stylesheet" href="{% static 'css/fontawesome.v5.6.3.css' %}">
+	<style>
+		#section1.load-background{
+			background:url({% static 'images/bg1.jpg' %}) no-repeat center center;
+		}
+		#section2.load-background{
+			background:url({% static 'images/bg2.jpg' %}) no-repeat center center;
+		}
+		#section3.load-background{
+			background:url({% static 'images/bg3.jpg' %}) no-repeat center center;
+		}
+		#section4.load-background{
+			background:url({% static 'images/bg4.jpg' %}) no-repeat center center;
+		}
+	</style>
+	<script type="text/javascript" src="{% static 'js/jquery.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'js/jquery-ui.min.js' %}"></script>
+	<script type="text/javascript" src="{% static 'js/jquery.fullPage.js' %}"></script>
+	<script type="text/javascript">
+		$(document).ready(function() {
+			var pagesTitle = ["Home Page", ">What Can You Do?", "Search Meals", "Search Recipes", "Required Ingredients"];
+			var diet_not_loaded = true;
+			var md_cover = false;
+			var user_filter_text = false;
+			var sort_by = "sort_by_name";
+			var page_number = 0;
+			var search_results_count = 0;
+			var search_mode = "";
+			var selected_recipes = new Set();
+			var filter_mapping_dict = {
+				"search_filter": "#md-panel-search",
+				"diet_filter": "#md-panel-diet",
+				"prep_time_filter": "#md-panel-prep",
+				"ingredient_filter": "#md-panel-ingredient",
+				"recipe_per_meal_filter": "#md-panel-recipe-per-meal"
+			};
+			$("#noscript").attr("style","display: none;"),
+			$("#fullpage").fullpage({
+				verticalCentered: false,
+				css3: false,
+				menu: "#menu",
+				anchors: ["Home", "WhatCanYouDo", "SearchMeal", "SearchRecipe", "Ingredients"],
+				sectionsColor: ["#F0F2F4", "#fff", "#fff", "#fff", "#fff"],
+				navigation: true,
+				navigationPosition: "right",
+				navigationTooltips: pagesTitle,
+				responsiveWidth: 900,
+				afterLoad: function(origin, destination, direction) {
+					if (destination == 3) {
+						if (diet_not_loaded) {
+							loadDiets();
+						}
+						if (search_mode != "Meals") {
+							search_mode = "Meals";
+							ClearRecipes();
+							searchFunction();
+						}
+						$("#search_main_container").detach().appendTo("#section2");
+					} else if (destination == 4) {
+						if (diet_not_loaded) {
+							loadDiets();
+						}
+						if (search_mode != "Recipes") {
+							search_mode = "Recipes";
+							ClearMeals();
+							searchFunction();
+						}
+						$("#search_main_container").detach().appendTo("#section3");
+					}
+					document.title = pagesTitle[destination-1];
+				},
+				onLeave: function(index, nextIndex, direction) {
+					if (index == 2 && direction == "down") {
+						$(".section").eq(index -1).removeClass("moveDown").addClass("moveUp");
+					} else if (index == 2 && direction == "up") {
+						$(".section").eq(index -1).removeClass("moveUp").addClass("moveDown");
+					}
+					// Lazy load bg
+					var destinationSection = $(".section").eq(nextIndex-1);
+					destinationSection.addClass("load-background");
+					if (nextIndex == 5) {
+						getIngredients();
+					}
+				},
+				afterResponsive: function(isResponsive) {}
+			});
+			$("#moveToHome").click(function(e) {
+				e.preventDefault();
+				$.fn.fullpage.moveTo(1);
+			});
+			$("#moveToPage2").click(function(e) {
+				e.preventDefault();
+				$.fn.fullpage.moveTo(2);
+			});
+			$("#moveToPage3").click(function(e) {
+				e.preventDefault();
+				$.fn.fullpage.moveTo(3);
+			});
+			$("#moveToPage4").click(function(e) {
+				e.preventDefault();
+				$.fn.fullpage.moveTo(4);
+			});
+			$("#moveToPage5").click(function(e) {
+				e.preventDefault();
+				$.fn.fullpage.moveTo(5);
+			});
+			$(".sort_button").click(function(e) {
+				$(".sort_button").removeClass("sort_selected");
+				$(this).addClass("sort_selected");
+				if (sort_by != $(this)[0].id) {
+					$("#"+sort_by).find("i").removeClass("fa-chevron-circle-down");
+					$("#"+sort_by).find("i").removeClass("fa-chevron-circle-up");
+					sort_by = $(this)[0].id;
+				}
+				if ($(this).find("i").hasClass("fa-chevron-circle-down")) {
+					$(this).find("i").removeClass("fa-chevron-circle-down").addClass("fa-chevron-circle-up");
+				} else {
+					$(this).find("i").removeClass("fa-chevron-circle-up").addClass("fa-chevron-circle-down");
+				}
+				searchFunction();
+			});
+			$("#md-cover").click(function(e) {
+				$(".md-panel-outer-wrapper").removeClass("_md-panel-shown").addClass("_md-panel-hidden");
+				md_cover = false;
+				searchFunction();
+			});
+			$(".md-ok").click(function(e) {
+				$(".md-panel-outer-wrapper").removeClass("_md-panel-shown").addClass("_md-panel-hidden");
+				md_cover = false;
+				searchFunction();
+			});
+			$(".filter_option").click(function(e) {
+				if (md_cover == true) {
+					$(".md-panel-outer-wrapper").removeClass("_md-panel-shown").addClass("_md-panel-hidden");
+				}
+				$("#md-cover").removeClass("_md-panel-hidden").addClass("_md-panel-shown");
+				$(filter_mapping_dict[$(this)[0].id]).removeClass("_md-panel-hidden").addClass("_md-panel-shown");
+				md_cover = true;
+			});
+			$("#page_prev").click(function(e) {
+				if (0 < page_number) {
+					page_number -= 1;
+					searchFunction();
+				} else {
+					paginationVisability();
+				}
+			});
+			$("#page_next").click(function(e) {
+				if (page_number <= Math.ceil(search_results_count/6)) {
+					page_number += 1;
+					searchFunction();
+				} else {
+					paginationVisability();
+				}
+			});
+			$("#selected_sum").on("click", "#clear_selected", function(e) {
+				$("#recipes-list .each_recipe_parent").each(function() {
+					var items_to_mark = new Set();
+					if (search_mode == "Meals") {
+						items_to_mark = new Set($(this)[0].id.split("+"));
+					} else if (search_mode == "Recipes") {
+						items_to_mark.add($(this)[0].id);
+					} else {
+						return false;
+					}
+					for (var it = items_to_mark.values(), val=null; val=it.next().value;) {
+						selected_recipes.delete(val);
+					}
+					$(this).find("i").removeClass("fas").removeClass("marked").addClass("far").addClass("unmarked");
+				});
+				$("#selected_sum").html("&nbsp;");
+			});
+			$("#recipes-list").on("click", ".add_recipe", function(e) {
+				var pressed_id = $(this).parent().parent()[0].id;
+				var items_to_mark = new Set();
+				if (search_mode == "Meals") {
+					items_to_mark = new Set(pressed_id.split("+"));
+				} else if (search_mode == "Recipes") {
+					items_to_mark.add(pressed_id);
+				} else {
+					return false;
+				}
+				if ($(this).find("i").hasClass("unmarked")) {
+					for (var it = items_to_mark.values(), val=null; val=it.next().value;) {
+						if (selected_recipes.has(val)) {
+							items_to_mark.delete(val);
+						}
+					}
+					if (selected_recipes.size + items_to_mark.size <= 5) {
+						$(this).find("i").removeClass("far").removeClass("unmarked").addClass("fas").addClass("marked");
+						for (var it = items_to_mark.values(), val=null; val=it.next().value;) {
+							selected_recipes.add(val);
+						}
+					}
+				} else {
+					$(this).find("i").removeClass("fas").removeClass("marked").addClass("far").addClass("unmarked");
+					for (var it = items_to_mark.values(), val=null; val=it.next().value;) {
+						selected_recipes.delete(val);
+					}
+				}
+				if (selected_recipes.size == 0) {
+					$("#selected_sum").html("&nbsp;");
+				} else {
+					$("#selected_sum").html("You have selected " + selected_recipes.size + " out of maximum of 5 recipes, <a href=\"#Ingredients\">Continue</a>, Or <a id=\"clear_selected\">clear selected</a>.");
+				}
+			});
+			$("#md-panel-diet").on("click", ".filter_menu_item", function(e) {
+				e.stopPropagation();
+				e.stopImmediatePropagation();
+				$(this).parent().find(".filter_menu_item").removeClass("keyingredient_selected");
+				$(this).addClass("keyingredient_selected");
+				$("#selected_diet").text($(this).attr("value"));
+				updateBoxsposition();
+			});
+			$("#PrepFrom").change(function () {
+				var prep_from = $(this).find(":selected")[0].id;
+				var prep_to = $("#PrepTo");
+				prep_to.empty();
+				if (prep_from == 0) {
+					prep_to.append("<option id=\"0\" value=\"0\">Any duration</option>");
+				}
+				for (var i = 1; i < 18; ++i) {
+					if (prep_from <= i*10) {
+						prep_to.append("<option id=\"" + i*10 + "\" value=\"" + i*10 + "\">" + int2duration(i*10) + "</option>");
+					}
+				}
+				prep_to.append("<option id=\"180\" value=\"180\" selected>More then 3 hours</option>");
+				$("#selected_prep").text($(this).find(":selected")[0].text + " - " + prep_to.find(":selected")[0].text);
+				updateBoxsposition();
+			});
+			$("#PrepTo").change(function () {
+				$("#selected_prep").text($("#PrepFrom").find(":selected")[0].text + " - " + $(this).find(":selected")[0].text);
+				updateBoxsposition();
+			});
+			$("#apiGetRecipesSuggestion").on('input', function() {
+				if (user_filter_text == true && $(this).val() == "") {
+					$("#search_filter .fa").removeClass("fa-search-plus").addClass("fa-search");
+					$("#search_filter .fa").css("color", "");
+					user_filter_text = false;
+				} else if (user_filter_text == false && $(this).val() != "") {
+					$("#search_filter .fa").removeClass("fa-search").addClass("fa-search-plus");
+					$("#search_filter .fa").css("color", "red");
+					user_filter_text = true;
+				}
+			});
+			$("#apiGetRecipesSuggestion").autocomplete({
+				source: function(request, response) {
+					$.ajax({
+						url: "/api/get_recipes_suggestion/",
+						dataType: "json",
+						data: {q: request.term},
+						success: function(data) {
+							if (data.status == 200) {
+								response($.map(data.message.suggestions, function(item) {
+									return {
+										label: item.name + " - " + item.calories + " Calories",
+										value: item.name
+									};
+								}));
+							}
+						}
+					});
+				},
+				minLength: 3,
+				open: function() {$(this).removeClass("ui-corner-all").addClass("ui-corner-top");},
+				close: function() {$(this).removeClass("ui-corner-top").addClass("ui-corner-all");}
+			});
+			$(".apiGetingredientsSuggestion").autocomplete({
+				source: function(request, response) {
+					$.ajax({
+						url: "/api/get_ingredients_suggestion/",
+						dataType: "json",
+						data: {q: request.term},
+						success: function(data) {
+							if (data.status == 200) {
+								response($.map(data.message.suggestions, function(item) {
+									return {
+										label: item.name,
+										value: item.name
+									};
+								}));
+							}
+						}
+					});
+				},
+				change: function (e, ui) {
+					if (!ui.item) {
+						$(this).val("");
+					}
+				},
+				minLength: 2,
+				open: function() {$(this).removeClass("ui-corner-all").addClass("ui-corner-top");},
+				close: function() {$(this).removeClass("ui-corner-top").addClass("ui-corner-all");}
+			});
+			function int2duration(num) {
+				if (num < 60) {
+					return num + " Minutes";
+				} else if (num == 60) {
+					return "1 Hour";
+				} else if (num < 120) {
+					return "1 Hour " + (num-60) + " Minutes";
+				} else if (num == 120) {
+					return "2 Hours";
+				} else {
+					return "2 Hours " + (num-120) + " Minutes";
+				}
+			}
+			function paginationVisability() {
+				if (page_number == 0) {
+					if ($("#page_prev").hasClass("hide_me") == false) {
+						$("#page_prev").addClass("hide_me");
+					}
+					if (search_results_count <= 6) {
+						if ($("#page_next").hasClass("hide_me") == false) {
+							$("#page_next").addClass("hide_me");
+						}
+					} else {
+						if ($("#page_next").hasClass("hide_me")) {
+							$("#page_next").removeClass("hide_me");
+						}
+					}
+				} else if (page_number+1 == Math.ceil(search_results_count/6)) {
+					if ($("#page_prev").hasClass("hide_me")) {
+						$("#page_prev").removeClass("hide_me");
+					}
+					if ($("#page_next").hasClass("hide_me") == false) {
+						$("#page_next").addClass("hide_me");
+					}
+				} else {
+					if ($("#page_prev").hasClass("hide_me")) {
+						$("#page_prev").removeClass("hide_me");
+					}
+					if ($("#page_next").hasClass("hide_me")) {
+						$("#page_next").removeClass("hide_me");
+					}
+				}
+			}
+			function loadDiets() {
+				$.ajax({
+					url: "/api/get_diets/",
+					dataType: "json",
+					async: false, // async!!!
+					cache: true,
+					timeout: 1500, // 1.5 second timeout
+					error: function() {
+						return true;
+					},
+					success: function(data) {
+						if (data.status == 200) {
+							var diets = $("#md-container-diets");
+							var prep_from = $("#PrepFrom");
+							diets.empty();
+							prep_from.empty();
+							diets.append("<div class=\"filter_menu_item keyingredient_selected\" value=\"any\" style=\"cursor: pointer\">any&nbsp;<span class=\"small_text\">-  Any diet</span></div>");
+							$("#selected_diet").text("any");
+							for (var i = 0; i < data.message.list.length; ++i) {
+								diets.append("<div class=\"filter_menu_item\" value=\"" + data.message.list[i].name + "\" style=\"cursor: pointer\">" + data.message.list[i].name + "&nbsp;<span class=\"small_text\">-  " + data.message.list[i].descr + "</span></div>");
+							}
+							prep_from.append("<option id=\"0\" value=\"0\">Any duration</option>");
+							for (var i = 1; i < 18; ++i) {
+								prep_from.append("<option id=\"" + i*10 + "\" value=\"" + i*10 + "\">" + int2duration(i*10) + "</option>");
+							}
+							prep_from.append("<option id=\"180\" value=\"180\">More then 3 hours</option>");
+							updateBoxsposition();
+							prep_from.change();
+							diet_not_loaded = false;
+						}
+					}
+				});
+			}
+			function updateBoxsposition() {
+				$("#md-panel-search .md-panel").css("left", ($("#search_filter").position().left+390) + "px");
+				$("#md-panel-search .md-panel").css("top", ($("#search_filter").position().top+160) + "px");
+				$("#md-panel-diet .md-panel").css("left", ($("#diet_filter").position().left+390) + "px");
+				$("#md-panel-diet .md-panel").css("top", ($("#diet_filter").position().top+160) + "px");
+				$("#md-panel-prep .md-panel").css("left", ($("#prep_time_filter").position().left+390) + "px");
+				$("#md-panel-prep .md-panel").css("top", ($("#prep_time_filter").position().top+160) + "px");
+				$("#md-panel-ingredient .md-panel").css("left", ($("#ingredient_filter").position().left+390) + "px");
+				$("#md-panel-ingredient .md-panel").css("top", ($("#ingredient_filter").position().top+160) + "px");
+				$("#md-panel-recipe-per-meal .md-panel").css("left", ($("#recipe_per_meal_filter").position().left+390) + "px");
+				$("#md-panel-recipe-per-meal .md-panel").css("top", ($("#recipe_per_meal_filter").position().top+160) + "px");
+			}
+			function ClearMeals() { // Used when moving into recipes search page
+				$("#recipes-list").empty();
+				if ($("#search_filter").hasClass("hide_me")) {
+					$("#search_filter").removeClass("hide_me");
+				}
+				if ($("#diet_filter").hasClass("hide_me")) {
+					$("#diet_filter").removeClass("hide_me");
+				}
+				if (!$("#recipe_per_meal_filter").hasClass("hide_me")) {
+					$("#recipe_per_meal_filter").addClass("hide_me");
+				}
+				for (var i = 1; i < 6; ++i) {
+					$("#ingredientsInc" + i).val("");
+					$("#ingredientsExc" + i).val("");
+				}
+				$("#PrepFrom").val("0");
+				page_number = 0;
+				search_results_count = 0;
+				paginationVisability();
+				selected_recipes.clear();
+				$("#selected_sum").html("&nbsp;");
+				$("#page_status").text("Showing results 0-0 out of 0");
+			}
+			function ClearRecipes() { // Used when moving into meals search page
+				$("#recipes-list").empty();
+				if (!$("#search_filter").hasClass("hide_me")) {
+					$("#search_filter").addClass("hide_me");
+				}
+				if (!$("#diet_filter").hasClass("hide_me")) {
+					$("#diet_filter").addClass("hide_me");
+				}
+				if ($("#recipe_per_meal_filter").hasClass("hide_me")) {
+					$("#recipe_per_meal_filter").removeClass("hide_me");
+				}
+				for (var i = 1; i < 6; ++i) {
+					$("#ingredientsInc" + i).val("");
+					$("#ingredientsExc" + i).val("");
+				}
+				$("#PrepFrom").val("0");
+				$("#RecipesPerMealCount").val("5");
+				page_number = 0;
+				search_results_count = 0;
+				paginationVisability();
+				selected_recipes.clear();
+				$("#selected_sum").html("&nbsp;");
+				$("#page_status").text("Showing results 0-0 out of 0");
+			}
+			function getMeals(data) {
+				$("#recipes-list").empty();
+				search_results_count = parseInt(data.message.results);
+				if (Math.ceil(search_results_count/6) <= page_number) {
+					if (page_number != 0) {
+						page_number = 0;
+						searchFunction();
+					} else {
+						$("#page_status").text("Showing results 0-0 out of 0");
+						paginationVisability();
+					}
+				} else {
+					var loop_all_ids = new Set();
+					var loop_add_class;
+					var loop_append_text;
+					var mark_as_checked;
+					for (var i = 0; i < data.message.meals.length; ++i) {
+						loop_all_ids.clear();
+						loop_append_text = "";
+						mark_as_checked = true;
+						for (var j = 0; j < data.message.meals[i].length; ++j) {
+							loop_all_ids.add("recipe_n_" + data.message.meals[i][j].id);
+							if (!selected_recipes.has("recipe_n_" + data.message.meals[i][j].id)) {
+								mark_as_checked = false;
+							}
+							loop_append_text += "\n\
+								<div class=\"recipe-title\">" + data.message.meals[i][j].name + "</div>";
+						}
+						if (mark_as_checked) {
+							loop_add_class = "fas fa-check-circle marked";
+						} else {
+							loop_add_class = "far fa-check-circle unmarked";
+						}
+						$("#recipes-list").append("\n\
+				<div class=\"each_recipe_parent\" id=\"" + [...loop_all_ids].join("+") + "\">\n\
+					<div class=\"each_recipe\">\n\
+						<div class=\"recipe\" style=\"background-color: rgba(0,0,0,.2);\">\n\
+							<div class=\"recipe-info\">" + loop_append_text + "\n\
+							</div>\n\
+						</div>\n\
+						<div class=\"add_recipe\" title=\"Add Recipe\"><i class=\"" + loop_add_class + "\"></i></div>\n\
+					</div>\n\
+				</div>");
+					}
+					var upto;
+					if ((page_number+1)*6 < search_results_count) {
+						upto = (page_number+1)*6;
+					} else {
+						upto = search_results_count;
+					}
+					$("#page_status").text("Showing results " + ((page_number*6)+1).toLocaleString() + "-" + upto.toLocaleString() + " out of " + search_results_count.toLocaleString());
+					paginationVisability();
+				}
+			}
+			function getRecipes(data) {
+				var loop_prep_array;
+				var loop_prep_hours;
+				var loop_prep_minutes;
+				$("#recipes-list").empty();
+				search_results_count = parseInt(data.message.results);
+				if (Math.ceil(search_results_count/6) <= page_number) {
+					if (page_number != 0) {
+						page_number = 0;
+						searchFunction();
+					} else {
+						$("#page_status").text("Showing results 0-0 out of 0");
+						paginationVisability();
+					}
+				} else {
+					var loop_add_class;
+					for (var i = 0; i < data.message.items.length; ++i) {
+						loop_prep_array = data.message.items[i].prep_time.split(":", 3);
+						if (loop_prep_array[0] == "01") {
+							loop_prep_hours = "1 hour";
+						} else if (loop_prep_array[0] != "00") {
+							loop_prep_hours = parseInt(loop_prep_array[0]) + " hours";
+						} else {
+							loop_prep_hours = "";
+						}
+						if (loop_prep_array[1] != "00") {
+							loop_prep_minutes = " " + parseInt(loop_prep_array[1]) + " Minutes";
+						} else {
+							loop_prep_minutes = "";
+						}
+						if (selected_recipes.has("recipe_n_" + data.message.items[i].id)) {
+							loop_add_class = "fas fa-check-circle marked";
+						} else {
+							loop_add_class = "far fa-check-circle unmarked";
+						}
+						$("#recipes-list").append("\n\
+				<div class=\"each_recipe_parent\" id=\"recipe_n_" + data.message.items[i].id + "\">\n\
+					<div class=\"each_recipe\">\n\
+						<a target=\"_blank\" href=\"" + data.message.items[i].url + "\">\n\
+							<div class=\"recipe\" style=\"background-image: url('" + data.message.items[i].image + "');\">\n\
+								<div class=\"recipe-info\">\n\
+									<div class=\"recipe-title\">" + data.message.items[i].name + "</div>\n\
+									<div class=\"recipe-info-footer\">\n\
+										<span>" + loop_prep_hours + loop_prep_minutes + ", " + parseInt(data.message.items[i].calories).toLocaleString() + " Calories</span>\n\
+									</div>\n\
+								</div>\n\
+							</div>\n\
+						</a>\n\
+						<div class=\"add_recipe\" title=\"Add Recipe\"><i class=\"" + loop_add_class + "\"></i></div>\n\
+					</div>\n\
+				</div>");
+					}
+					var upto;
+					if ((page_number+1)*6 < search_results_count) {
+						upto = (page_number+1)*6;
+					} else {
+						upto = search_results_count;
+					}
+					$("#page_status").text("Showing results " + ((page_number*6)+1).toLocaleString() + "-" + upto.toLocaleString() + " out of " + search_results_count.toLocaleString());
+					paginationVisability();
+				}
+			}
+			function searchFunction() {
+				var recipe_name = $("#apiGetRecipesSuggestion").val();
+				var diet = $("#md-container-diets .keyingredient_selected").attr("value");
+				var prep_from = $("#PrepFrom").find(":selected")[0].id;
+				var prep_to = $("#PrepTo").find(":selected")[0].id;
+				var ingredients_inc = [];
+				var ingredients_exc = [];
+				for (var i = 1; i < 6; ++i) {
+					if ($("#ingredientsInc" + i).val() != "") {
+						ingredients_inc.push($("#ingredientsInc" + i).val());
+					}
+					if ($("#ingredientsExc" + i).val() != "") {
+						ingredients_exc.push($("#ingredientsExc" + i).val());
+					}
+				}
+				ingredients_inc = [...new Set(ingredients_inc)];
+				ingredients_exc = [...new Set(ingredients_exc)];
+				var recipes_per_meal = $("#RecipesPerMealCount").find(":selected")[0].id;
+				var sort_by = $("#bottom_row_content .sort_selected")[0].id;
+				var sort_order;
+				if ($("#"+sort_by).find("i").hasClass("fa-chevron-circle-down")) {
+					sort_order = "desc";
+				} else {
+					sort_order = "asc";
+				}
+				var api_url;
+				if (search_mode == "Meals") {
+					api_url = "/api/search_meals/";
+				} else if (search_mode == "Recipes") {
+					api_url = "/api/search_recipes/";
+				} else {
+					return false;
+				}
+				$.ajax({
+					url: api_url,
+					dataType: "json",
+					data: {recipe_name: recipe_name,
+						diet: diet,
+						prep_from: prep_from,
+						prep_to: prep_to,
+						ingredients_inc: ingredients_inc.join("+"),
+						ingredients_exc: ingredients_exc.join("+"),
+						recipes_per_meal: recipes_per_meal,
+						sort_by: sort_by,
+						sort_order: sort_order,
+						page: page_number},
+					success: function(data) {
+						if (data.status == 200) {
+							if (search_mode == "Meals") {
+								getMeals(data);
+							} else if (search_mode == "Recipes") {
+								getRecipes(data);
+							}
+						}
+					}
+				});
+			}
+			function getIngredients() {
+				if (selected_recipes.size == 0) {
+					$("#ingredients_sum").html("Please <a href=\"#SearchRecipe\">select at least one recipe</a> first.");
+					$("#scrollable_ingredients").empty();
+				} else {
+					$.ajax({
+						url: "/api/get_ingredients/",
+						dataType: "json",
+						data: {selected_recipes: [...selected_recipes].join("+")},
+						success: function(data) {
+							if (data.status == 200) {
+								var loop_text;
+								$("#ingredients_sum").text("The required ingredients are:");
+								$("#scrollable_ingredients").empty();
+								for (var i = 0; i < data.message.categories.length; ++i) {
+									loop_text = "\n\
+					<div class=\"filter_chip_container\">\n\
+						<div class=\"filter_row\">" + data.message.categories[i].name + "&nbsp;<span class=\"small_text\">" + data.message.categories[i].descr + "</span></div>\n\
+					</div>\n\
+					<div class=\"filter_chip_container\">\n\
+						<div class=\"filter_row\">\n\
+							<ul>";
+									for (var j = 0; j < data.message.categories[i].list.length; ++j) {
+										loop_text += "\n\
+								<li>" + data.message.categories[i].list[j] + "</li>";
+									}
+									$("#scrollable_ingredients").append(loop_text + "\n\
+							</ul>\n\
+						</div>\n\
+					</div>");
+								}
+							}
+						}
+					});
+				}
+			}
+		});
+	</script>
+</head>
+<body>
+<div id="noscript">
+<div><strong>Warning: </strong>For full functionality of this site it is necessary to enable JavaScript.<br/>Here are the <a href="http://www.enable-javascript.com/" target="_blank"> instructions how to enable JavaScript in your web browser</a>.</div>
+</div>
+<div id="header">FoodFinder
+	<ul id="menu">
+		<li data-menuanchor="Home" class="active"><a id="moveToHome" href="#">Home Page</a></li>
+		<li data-menuanchor="WhatCanYouDo"><a id="moveToPage2" href="#">What Can You Do?</a></li>
+		<li data-menuanchor="SearchMeal"><a id="moveToPage3" href="#">Search Meals</a></li>
+		<li data-menuanchor="SearchRecipe"><a id="moveToPage4" href="#">Search Recipes</a></li>
+		<li data-menuanchor="Ingredients"><a id="moveToPage5" href="#">Required Ingredients</a></li>
+	</ul>
+</div>
+<div id="footer">The site was build as a the final project at Tel Aviv University Database Systems (Fall 2018/19) course (0368-3458).</div>
+<div id="fullpage">
+	<div class="section" id="section0" style="background:url({% static 'images/bg0.jpg' %}) no-repeat center center;">
+		<div class="wrap">
+			<div class="box fp-auto-height-responsive">
+				<h1>FoodFinder</h1>
+				A new and innovative way to find the best recipe that <strong>fits</strong> you.<br/>
+				Here you can find recipes by ingredients, preparation time and diet!<br/>
+				Ready? <a href="#WhatCanYouDo">let's find you somewhere to eat</a>
+			</div>
+		</div>
+	</div>
+	<div class="section moveDown" id="section1">
+		<div class="wrap">
+			<div class="box fp-auto-height-responsive">
+				<h2>What Can You Do?</h2>
+				FoodFinder allows you to <a href="#SearchRecipe">search a recipe</a> by a variety of properties -
+				<ul>
+					<li>Preparation <strong>Time</strong></li>
+					<li>Ingredients you want to be <strong>included</strong></li>
+					<li>Ingredients you want to be <strong>excluded</strong></li>
+					<li>Specific <strong>Diet</strong></li>
+				</ul><br/>
+				We know that sometimes you need to make <strong>more than a single dish</strong>..<br/>
+				This might be <strong>tricky</strong> with a limited time frame, or ingredients.<br/>
+				That is why <a href="#SearchMeal">we also offer a query</a> which finds for you <strong>up to 5 recipes</strong> you could prepare in a <strong>predefined time frame</strong>!<br/>
+				You could also narrow that search by defining Ingredient as before.<br/>
+				<br/>
+				Let's say you want to prepare 3 dishes in 2 hours :)<br/>
+				You can pick your 3 recipes and get a <a href="#Ingredients"><strong>shopping list</strong></a> for your needed ingredients!
+			</div>
+		</div>
+	</div>
+	<div class="section moveDown" id="section2"></div>
+	<div class="section moveDown" id="section3">
+		<div class="wrap" id="search_main_container">
+			<div class="box fp-auto-height-responsive">
+				<h2>Let's start!</h2>
+				So, What do you want to cook today?
+				<div class="filter_chip_container" id="selected_sum">&nbsp;</div>
+				<div class="filter_chip_container">
+					<div class="filter_row">
+						<div class="filter_option" id="search_filter"><i class="fa fa-search" aria-hidden="true"></i></div>
+						<div class="filter_option" id="diet_filter">Diet <span id="selected_diet" class="small_text"></span></div>
+						<div class="filter_option" id="prep_time_filter">Meal preparation time <span id="selected_prep" class="small_text"></span></div>
+						<div class="filter_option" id="ingredient_filter">Ingredient</div>
+						<div class="filter_option" id="recipe_per_meal_filter">Recipes per meal</div>
+					</div>
+				</div>
+				<div class="row clearfix" id="recipes-content-container">
+					<div class="recipes-container">
+						<div id="recipes-list" class="clearfix">
+						</div>
+					</div>
+				</div>
+				<div class="filter_chip_container">
+					<div class="filter_row" id="bottom_row_content">
+						<div class="filter_menu_item">Sort by</div>
+						<div class="filter_menu_item sort_button sort_selected" id="sort_by_name">Recipe name&nbsp;<i class="fa fa-chevron-circle-down"></i></div>
+						<div class="filter_menu_item sort_button" id="sort_by_prep">Preparation time&nbsp;<i class="fa"></i></div>
+						<div class="filter_menu_item sort_button" id="sort_by_cal">Calories&nbsp;<i class="fa"></i></div>
+						<div class="filter_menu_item" style="flex-grow: 1"></div>
+						<div class="filter_menu_item hide_me" id="page_prev">Previous</div>
+						<div class="filter_menu_item" id="page_status">Showing results ?-? out of ?</div>
+						<div class="filter_menu_item" id="page_next">Next</div>
+					</div>
+				</div>
+				<div class="md-panel-outer-wrapper _md-panel-hidden" id="md-cover">
+					<div class="md-panel _md-panel-backdrop _md-opaque-enter"></div>
+				</div>
+				<div class="md-panel-outer-wrapper _md-panel-hidden" id="md-panel-search"> 
+					<div class="_md-panel-focus-trap"></div>
+					<div class="md-panel" style="left: 400px;">
+						<div class="keyingredient_menu filter_menu">
+							<h6 class="md-subhead" style="min-width: 224px">Select recipe by name</h6>
+							<hr width="90%">
+							<div class="filter_menu_item">
+								<input type="text" name="recipesSearch" id="apiGetRecipesSuggestion" class="ui-corner-all"/>
+							</div>
+						</div>
+						<div class="md-ok"><button class="md-button" type="button" style="width: 100%;padding: 10px;">Confirm</button></div>
+					</div>
+					<div class="_md-panel-focus-trap"></div>
+				</div>
+				<div class="md-panel-outer-wrapper _md-panel-hidden" id="md-panel-diet"> 
+					<div class="_md-panel-focus-trap"></div>
+					<div class="md-panel" style="left: 450px;">
+						<div class="keyingredient_menu filter_menu">
+							<h6 class="md-subhead" style="min-width: 224px">Select diet</h6>
+							<hr width="90%">
+							<div id="md-container-diets">
+								<div class="filter_menu_item" value="invalid">~~ Waiting for data ~~<span class="small_text"></span></div>
+							</div>
+						</div>
+						<div class="md-ok"><button class="md-button" type="button" style="width: 100%;padding: 10px;">Confirm</button></div>
+					</div>
+					<div class="_md-panel-focus-trap"></div>
+				</div>
+				<div class="md-panel-outer-wrapper _md-panel-hidden" id="md-panel-prep"> 
+					<div class="_md-panel-focus-trap"></div>
+					<div class="md-panel" style="left: 560px;">
+						<div class="keyingredient_menu filter_menu">
+							<h6 class="md-subhead" style="min-width: 224px">Preparation time</h6>
+							<hr width="90%">
+							<div class="filter_menu_item">
+								Between&nbsp;
+								<select name="PrepFrom" id="PrepFrom">
+									<option id="invalid" value="invalid">~~ Waiting for data ~~</option>
+								</select>
+							</div>
+							<div class="filter_menu_item">
+								To&nbsp;
+								<select name="PrepTo" id="PrepTo">
+									<option id="invalid" value="invalid">~~ Waiting for data ~~</option>
+								</select>
+							</div>
+						</div>
+						<div class="md-ok"><button class="md-button" type="button" style="width: 100%;padding: 10px;">Confirm</button></div>
+					</div>
+					<div class="_md-panel-focus-trap"></div>
+				</div>
+				<div class="md-panel-outer-wrapper _md-panel-hidden" id="md-panel-ingredient"> 
+					<div class="_md-panel-focus-trap"></div>
+					<div class="md-panel" style="left: 880px;">
+						<div class="keyingredient_menu filter_menu">
+							<h6 class="md-subhead" style="min-width: 224px">Filter by ingredients</h6>
+							<hr width="90%">
+							<div class="filter_menu_item">Include</div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsInc1" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsInc2" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsInc3" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsInc4" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsInc5" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item">Exclude</div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsExc1" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsExc2" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsExc3" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsExc4" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+							<div class="filter_menu_item"><input type="text" id="ingredientsExc5" class="apiGetingredientsSuggestion ui-corner-all"/></div>
+						</div>
+						<div class="md-ok"><button class="md-button" type="button" style="width: 100%;padding: 10px;">Confirm</button></div>
+					</div>
+					<div class="_md-panel-focus-trap"></div>
+				</div>
+				<div class="md-panel-outer-wrapper _md-panel-hidden" id="md-panel-recipe-per-meal"> 
+					<div class="_md-panel-focus-trap"></div>
+					<div class="md-panel" style="left: 920;">
+						<div class="keyingredient_menu filter_menu">
+							<h6 class="md-subhead" style="min-width: 224px">Recipes per meal</h6>
+							<hr width="90%">
+							<div class="filter_menu_item">
+								Count&nbsp;
+								<select name="RecipesPerMealCount" id="RecipesPerMealCount">
+									<option id="2" value="2">2 Recipes</option>
+									<option id="3" value="3">3 Recipes</option>
+									<option id="4" value="4">4 Recipes</option>
+									<option id="5" value="5" selected>5 Recipes</option>
+								</select>
+							</div>
+						</div>
+						<div class="md-ok"><button class="md-button" type="button" style="width: 100%;padding: 10px;">Confirm</button></div>
+					</div>
+					<div class="_md-panel-focus-trap"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+	<div class="section" id="section4">
+		<div class="wrap">
+			<div class="box fp-auto-height-responsive">
+				<h2>Last Step! </h2>
+				 Here you can get a shopping list for your chosen recipes.
+				<div class="filter_chip_container" id="ingredients_sum">&nbsp;</div>
+				<div id="scrollable_ingredients">
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+</body>
+</html>
